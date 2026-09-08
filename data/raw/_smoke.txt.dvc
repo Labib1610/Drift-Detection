@@ -1,0 +1,5 @@
+outs:
+- md5: a4f92ec3d78ed1ee2c736947b0b92007
+  size: 10
+  hash: md5
+  path: _smoke.txt
