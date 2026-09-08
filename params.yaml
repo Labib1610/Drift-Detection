@@ -1,0 +1,27 @@
+seed: 42
+
+data:
+  max_docs_per_language: 100000
+  min_doc_words: 50
+  top_k_publishers: 3          # amended from 6: see T2 panel design
+  languages: [bn, en, hi, ar, uk]
+
+bn:
+  raw_dir: data/raw/bn_potrika/RawDataset
+  panel_publishers: [Inqilab, Jugantor, Kaler Kontho]
+  panel_start: "2016-01"
+  panel_end: "2020-12"
+
+window:
+  words_per_window: 2000
+  calibration_fraction: 0.10
+
+tokenizers:
+  - bert-base-multilingual-cased
+  - xlm-roberta-base
+  - meta-llama/Llama-3.2-1B     # gated; HF access now granted (token in ~/.cache/huggingface)
+  - Qwen/Qwen2.5-0.5B
+  - bigscience/bloom-560m       # kept as an extra open byte-level BPE with strong Bengali coverage
+
+streams:
+  num_shuffles: 10

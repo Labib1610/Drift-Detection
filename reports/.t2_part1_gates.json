@@ -1,0 +1,18 @@
+{
+  "gates": {
+    "GATE 1 \u2014 bn_panel.parquet exists, chronologically sorted, schema exact": true,
+    "GATE 2 \u2014 publisher shares within 33.3% \u00b1 2pp in EVERY panel year": true,
+    "GATE 3 \u2014 <5% of (month \u00d7 source) quota cells underfilled": true,
+    "GATE 4 \u2014 bn_full.parquet exists, 6 publishers, 2014-06..2020-12": true
+  },
+  "details": {
+    "GATE 1 \u2014 bn_panel.parquet exists, chronologically sorted, schema exact": "schema match=True, 99,900 docs",
+    "GATE 2 \u2014 publisher shares within 33.3% \u00b1 2pp in EVERY panel year": "all years within tolerance",
+    "GATE 3 \u2014 <5% of (month \u00d7 source) quota cells underfilled": "0.0% underfilled",
+    "GATE 4 \u2014 bn_full.parquet exists, 6 publishers, 2014-06..2020-12": "6 publishers: ['Inqilab', 'Ittefaq', 'Jaijaidin', 'Jugantor', 'Kaler Kontho', 'Somoyer Alo']"
+  },
+  "surprises": [
+    "bn_full uses equal-per-month sampling (uniform across time). The brief also says 'proportionally within each month' \u2014 confirm which you meant; only affects the appendix stream."
+  ],
+  "blockers": []
+}

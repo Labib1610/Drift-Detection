@@ -1,0 +1,23 @@
+stages:
+  streams:
+    cmd: python src/streams.py
+    deps:
+    - data/interim
+    - src/streams.py
+    params:
+    - seed
+    - streams
+    outs:
+    - data/streams
+  fertility:
+    cmd: python src/fertility.py
+    deps:
+    - data/interim
+    - data/streams
+    - src/fertility.py
+    params:
+    - tokenizers
+    - window
+    outs:
+    - features/fertility
+    - features/windows

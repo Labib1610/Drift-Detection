@@ -1,0 +1,64 @@
+schema: '2.0'
+stages:
+  streams:
+    cmd: python src/streams.py
+    deps:
+    - path: data/interim
+      hash: md5
+      md5: 60504bce6c528011f85345c338f75015.dir
+      size: 217164296
+      nfiles: 2
+    - path: src/streams.py
+      hash: md5
+      md5: 9d2e2e16c545dc6d6c3b9121e9d61e2b
+      size: 3958
+    params:
+      params.yaml:
+        seed: 42
+        streams:
+          num_shuffles: 10
+    outs:
+    - path: data/streams
+      hash: md5
+      md5: d35dc65dfd72ccbf73de85a194b5521f.dir
+      size: 8625421
+      nfiles: 3
+  fertility:
+    cmd: python src/fertility.py
+    deps:
+    - path: data/interim
+      hash: md5
+      md5: 60504bce6c528011f85345c338f75015.dir
+      size: 217164296
+      nfiles: 2
+    - path: data/streams
+      hash: md5
+      md5: d35dc65dfd72ccbf73de85a194b5521f.dir
+      size: 8625421
+      nfiles: 3
+    - path: src/fertility.py
+      hash: md5
+      md5: 3d02d3c4220bc7ed2c22db9cdd353f32
+      size: 40273
+    params:
+      params.yaml:
+        tokenizers:
+        - bert-base-multilingual-cased
+        - xlm-roberta-base
+        - meta-llama/Llama-3.2-1B
+        - Qwen/Qwen2.5-0.5B
+        - bigscience/bloom-560m
+        window:
+          words_per_window: 2000
+          calibration_fraction: 0.1
+    outs:
+    - path: features/fertility
+      hash: md5
+      md5: fffd6e8a2eaa98e9b3fce50b75775790.dir
+      size: 12184948
+      nfiles: 10
+    - path: features/windows
+      hash: md5
+      md5: f2e2968fc0435454d6c31dacd4d1015e.dir
+      size: 66230393
+      nfiles: 61
