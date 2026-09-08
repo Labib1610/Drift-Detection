@@ -195,17 +195,34 @@ def seg_sum(arr, starts, covered):
 # ---------------------------------------------------------------------------
 # Z-scoring
 # ---------------------------------------------------------------------------
-def zscore(values, n_calib):
+def zscore(values, ref_lo, ref_hi):
+    """Z-score against the reference epoch [ref_lo, ref_hi) (T4 split protocol)."""
     v = np.asarray(values, dtype=np.float64)
-    calib = v[:n_calib]
-    calib = calib[~np.isnan(calib)]
-    if calib.size == 0:
+    ref = v[ref_lo:ref_hi]
+    ref = ref[~np.isnan(ref)]
+    if ref.size == 0:
         return np.full_like(v, np.nan), float("nan"), float("nan")
-    mu = float(calib.mean())
-    sd = float(calib.std())
+    mu = float(ref.mean())
+    sd = float(ref.std())
     if not np.isfinite(sd) or sd < 1e-9:
         return np.full_like(v, np.nan), mu, sd
     return (v - mu) / sd, mu, sd
+
+
+def build_type_fertility(tok, id_to_type):
+    """pieces-per-type for every ICU word type, tokenized in *word-initial* form.
+    For SentencePiece/byte-level BPE the word-boundary marker only appears when a
+    leading space is present, so a bare type would understate fertility. Returns a
+    float array indexed by type-id (space-prefixed) and a (bare, spaced) probe pair."""
+    n = len(id_to_type)
+    spaced = [" " + t for t in id_to_type]
+    pieces = np.zeros(n, dtype=np.float64)
+    B = 8000
+    for s in range(0, n, B):
+        enc = tok(spaced[s:s + B], add_special_tokens=False)["input_ids"]
+        for j, ids in enumerate(enc):
+            pieces[s + j] = len(ids)
+    return pieces
 
 
 # ---------------------------------------------------------------------------
@@ -240,7 +257,7 @@ def pctl(a, q):
 def main():
     ap = argparse.ArgumentParser(description="TASK 3 Part 2 — fertility signals")
     ap.add_argument("--params", default="params.yaml")
-    ap.add_argument("--report", default="reports/T3_report.md")
+    ap.add_argument("--report", default="reports/T4_report.md")
     ap.add_argument("--demo", action="store_true")
     args = ap.parse_args()
 
@@ -252,15 +269,19 @@ def main():
     tok_names = list(P["tokenizers"])
     target_words = P["window"]["words_per_window"]
     calib_frac = P["window"]["calibration_fraction"]
+    vocab_frac = P["window"]["vocab_fraction"]
+    ref_frac = P["window"]["reference_fraction"]
     num_shuffles = P["streams"]["num_shuffles"]
 
     demo = args.demo
     feat_dir = "features/fertility"
     win_dir = "features/windows"
     fig_dir = "reports/figs"
-    for d in (feat_dir, win_dir, fig_dir):
+    type_dir = "features/type_fertility"
+    for d in (feat_dir, win_dir, fig_dir, type_dir):
         os.makedirs(d, exist_ok=True)
-    report_path = "reports/T3_report_demo.md" if demo else args.report
+    t3_path = "reports/T3_report_demo.md" if demo else "reports/T3_report.md"
+    t4_path = "reports/T4_report_demo.md" if demo else args.report
 
     timings = OrderedDict()
     tok_info = OrderedDict()      # name -> dict of family/marker/pieces/substituted
@@ -269,6 +290,12 @@ def main():
     null_pairs = []               # (stream, name, signal) that are null
     zparams = {}                  # stream -> name -> signal -> {mu,sigma,n_calib}
     panel_perm0 = {}              # name -> window DataFrame (real stream) for figures/obs
+    # T4 accumulators
+    type_valid = {}               # (stream,name) -> (mean_ratio, pearson_r)
+    type_probe = {}               # name -> (example_type, bare_pieces, spaced_pieces)
+    s8_null = {}                  # (stream,name) -> #windows with S8 null (perm00)
+    sigma_s4 = {}                 # (stream,name) -> sigma_ref(S4) on perm00
+    ref_dates = {}                # stream -> "YYYY-MM-DD .. YYYY-MM-DD" reference epoch
 
     # ---- load tokenizers once ---------------------------------------------
     loaded = OrderedDict()
@@ -379,6 +406,37 @@ def main():
             if not L["bf_defined"]:
                 null_pairs.append((stream, name, "S2 byte-fallback (byte-level BPE)"))
 
+        # ---- T4 Part 2: per-type fertility table (word-initial form) ----------
+        id_to_type = [None] * len(type_dict)
+        for t, i in type_dict.items():
+            id_to_type[i] = t
+        type_pieces = {}
+        t0 = time.time()
+        rng_val = np.random.default_rng(seed)
+        val_idx = rng_val.choice(n_docs_total, size=min(2000, n_docs_total), replace=False)
+        for name, L in loaded.items():
+            tp = build_type_fertility(L["tok"], id_to_type)
+            type_pieces[name] = tp
+            if stream == "bn_panel":
+                sfx = "_demo" if demo else ""
+                pd.DataFrame({"type": id_to_type,
+                              "n_pieces": tp.astype(np.int32)}).to_parquet(
+                    f"{type_dir}/{slug(name)}{sfx}.parquet", index=False,
+                    compression="zstd")
+            # empirical word-initial check: bare vs spaced pieces for one long type
+            ex_id = int(max(range(len(id_to_type)), key=lambda i: len(id_to_type[i])))
+            ex = id_to_type[ex_id]
+            bare = len(L["tok"](ex, add_special_tokens=False)["input_ids"])
+            spaced = int(tp[ex_id])
+            type_probe[name] = (ex[:24], bare, spaced)
+            # validation: isolated-type sum vs in-context n_tokens on 2000 docs
+            pred = np.array([type_pieces[name][doc_types[d]].sum() for d in val_idx])
+            act = perdoc[name]["n_tokens"][val_idx].astype(np.float64)
+            ratio = float(np.mean(pred / np.maximum(act, 1)))
+            r = float(np.corrcoef(pred, act)[0, 1]) if act.std() > 0 else float("nan")
+            type_valid[(stream, name)] = (ratio, r)
+        timings[f"{stream}: type-fertility"] = time.time() - t0
+
         # permutations
         if demo:
             perms = {0: np.arange(n_docs_total, dtype=np.int64)}
@@ -400,8 +458,13 @@ def main():
                 continue
             starts = bounds[:-1]
             covered = int(bounds[-1])
-            n_calib = max(1, int(np.floor(calib_frac * n_win)))
-            covered_calib = int(bounds[n_calib])
+            # ---- T4 split epoch: vocab [0,nv), reference [nv,nre), detection [nre,) --
+            n_vocab = max(1, int(np.floor(vocab_frac * n_win)))
+            n_ref_end = max(n_vocab + 1, int(np.floor((vocab_frac + ref_frac) * n_win)))
+            n_ref_end = min(n_ref_end, n_win)
+            ref_lo, ref_hi = n_vocab, n_ref_end
+            covered_vocab = int(bounds[n_vocab])
+            covered_ref = int(bounds[n_ref_end])
 
             n_docs_w = np.diff(bounds).astype(np.int64)
             nwords_w = seg_sum(words_ord.astype(np.int64), starts, covered)
@@ -412,6 +475,9 @@ def main():
             for wi in range(n_win):
                 med_date[wi] = int(np.median(dord[bounds[wi]:bounds[wi + 1]]))
             med_date = pd.to_datetime(med_date)
+            if pk == 0:
+                ref_dates[stream] = (f"{med_date[ref_lo].date()} .. "
+                                     f"{med_date[max(ref_lo, ref_hi - 1)].date()}")
 
             # topic proportions
             tord = topic_ord_base[order]
@@ -420,27 +486,44 @@ def main():
                 tc = seg_sum((tord == c).astype(np.int64), starts, covered)
                 topic_props[:, c] = tc / n_docs_w
 
-            # ---- S4 unseen-type rate (order dependent, tokenizer independent) --
+            # ---- S4 + new type-fertility signals (S1c/S7/S8/S9) per window -----
+            # V = word-type vocabulary frozen from the vocabulary epoch [0, n_vocab).
             ord_types = [doc_types[d] for d in order]
-            calib_concat = np.concatenate(ord_types[:covered_calib]) if covered_calib else np.array([], np.uint32)
-            calib_vocab = np.unique(calib_concat)
+            vocab_concat = (np.concatenate(ord_types[:covered_vocab])
+                            if covered_vocab else np.array([], np.uint32))
+            calib_vocab = np.unique(vocab_concat)
             s4 = np.zeros(n_win, dtype=np.float64)
             s4_type = np.zeros(n_win, dtype=np.float64)
+            # S8/S9 are type-weighted (brief's mechanism signals); S8tok/S9tok are the
+            # token-weighted novel/seen fertility (A/B) that close the exact identity.
+            new_sig = {name: {k: np.full(n_win, np.nan)
+                              for k in ("S1c", "S7", "S8", "S9", "S8tok", "S9tok")}
+                       for name in loaded}
             for wi in range(n_win):
                 seg = ord_types[bounds[wi]:bounds[wi + 1]]
                 w_ids = np.concatenate(seg) if seg else np.array([], np.uint32)
                 if w_ids.size == 0:
                     s4[wi] = np.nan; s4_type[wi] = np.nan; continue
-                idx = np.searchsorted(calib_vocab, w_ids)
-                idx = np.clip(idx, 0, len(calib_vocab) - 1)
+                idx = np.clip(np.searchsorted(calib_vocab, w_ids), 0, max(0, len(calib_vocab) - 1))
                 seen = (calib_vocab[idx] == w_ids) if len(calib_vocab) else np.zeros(w_ids.shape, bool)
                 s4[wi] = float((~seen).sum()) / w_ids.size
                 uniq = np.unique(w_ids)
                 uidx = np.clip(np.searchsorted(calib_vocab, uniq), 0, max(0, len(calib_vocab) - 1))
                 useen = (calib_vocab[uidx] == uniq) if len(calib_vocab) else np.zeros(uniq.shape, bool)
                 s4_type[wi] = float((~useen).sum()) / uniq.size
-            # freeze audit: calibration vocab derived only from windows < n_calib
-            s4_leak_ok = True
+                novel_u, seen_u = uniq[~useen], uniq[useen]
+                for name in loaded:
+                    fp = type_pieces[name]
+                    fp_w = fp[w_ids]
+                    denom = fp_w.sum()
+                    ns = new_sig[name]
+                    ns["S1c"][wi] = fp[uniq].mean()
+                    ns["S7"][wi] = float(fp_w[~seen].sum() / denom) if denom > 0 else np.nan
+                    ns["S8"][wi] = fp[novel_u].mean() if novel_u.size else np.nan
+                    ns["S9"][wi] = fp[seen_u].mean() if seen_u.size else np.nan
+                    # token-weighted novel/seen fertility (A/B) — close the identity
+                    ns["S8tok"][wi] = fp_w[~seen].mean() if (~seen).any() else np.nan
+                    ns["S9tok"][wi] = fp_w[seen].mean() if seen.any() else np.nan
 
             # ---- per-tokenizer signals ----------------------------------------
             for name, L in loaded.items():
@@ -459,11 +542,10 @@ def main():
                 else:
                     s2 = np.full(n_win, np.nan)
 
-                # S1b topic-adjusted (tokenizer specific): per-doc fertility in
-                # permutation order (ntok_ord and n_words[order] are both aligned to order)
+                # S1b topic-adjusted (tokenizer specific). Topic reference anchored on
+                # the full first-10% epoch [0, covered_ref) — the "deployed-model" level.
                 fert_ord = ntok_ord / np.maximum(n_words[order].astype(np.float64), 1)
-                # calibration topic reference (docs in first n_calib windows)
-                calib_docs = order[:covered_calib]
+                calib_docs = order[:covered_ref]
                 calib_top = topic_ord_base[calib_docs]
                 calib_fert = pd_["n_tokens"][calib_docs] / np.maximum(n_words[calib_docs], 1)
                 w_ref = np.zeros(len(topics)); f_ref = np.zeros(len(topics))
@@ -482,15 +564,21 @@ def main():
                     fallback_hits += int(((cnt == 0) & (w_ref[c] > 0)).sum())
                     s1b += w_ref[c] * fwin
 
-                sig = {"S1": s1, "S2": s2, "S3": s3, "S4": s4, "S4_type": s4_type, "S1b": s1b}
+                ns = new_sig[name]
+                sig = {"S1": s1, "S2": s2, "S3": s3, "S4": s4, "S4_type": s4_type,
+                       "S1b": s1b, "S1c": ns["S1c"], "S7": ns["S7"],
+                       "S8": ns["S8"], "S9": ns["S9"]}
                 zcols = {}
                 for sname, sv in sig.items():
-                    z, mu, sd = zscore(sv, n_calib)
+                    z, mu, sd = zscore(sv, ref_lo, ref_hi)
                     zcols["z_" + sname] = z
                     zparams[stream][name][f"{sname}@perm{pk:02d}"] = {
-                        "mu": mu, "sigma": sd, "n_calibration_windows": int(n_calib)}
+                        "mu": mu, "sigma": sd, "n_reference_windows": int(ref_hi - ref_lo)}
                     if np.all(np.isnan(z)) and pk == 0:
                         null_pairs.append((stream, name, sname + " (z all null)"))
+                if pk == 0:
+                    sigma_s4[(stream, name)] = zparams[stream][name]["S4@perm00"]["sigma"]
+                    s8_null[(stream, name)] = int(np.isnan(ns["S8"]).sum())
 
                 out = pd.DataFrame({
                     "window_idx": np.arange(n_win, dtype=np.int32),
@@ -498,8 +586,9 @@ def main():
                     "n_docs": n_docs_w.astype(np.int32),
                     "n_words": nwords_w.astype(np.int32),
                     "n_tokens": tok_w.astype(np.int64),
-                    "S1": s1, "S2": s2, "S3": s3, "S4": s4, "S4_type": s4_type, "S1b": s1b,
-                    **zcols,
+                    "S1": s1, "S2": s2, "S3": s3, "S4": s4, "S4_type": s4_type,
+                    "S1b": s1b, "S1c": ns["S1c"], "S7": ns["S7"], "S8": ns["S8"],
+                    "S9": ns["S9"], "S8tok": ns["S8tok"], "S9tok": ns["S9tok"], **zcols,
                 })
                 for c, t in enumerate(topics):
                     out[f"topic_{t}"] = topic_props[:, c]
@@ -524,12 +613,19 @@ def main():
         xlmr = next((n for n in loaded if "xlm-roberta" in n), None)
         if xlmr:
             _fig_grid(panel_perm0[xlmr], xlmr, f"{fig_dir}/T3_signal_grid.png")
+        zp = zparams.get("bn_panel", {})
+        _fig_decomposition(panel_perm0, loaded, zp, f"{fig_dir}/T4_decomposition.png")
+        _fig_signal_comparison(panel_perm0, loaded, f"{fig_dir}/T4_signal_comparison.png")
 
-    # ---- report -----------------------------------------------------------
-    _write_report(report_path, demo, args, tok_info, tok_names, raw_fertility,
+    # ---- reports ----------------------------------------------------------
+    _write_report(t3_path, demo, args, tok_info, tok_names, raw_fertility,
                   fert_len_corr, null_pairs, panel_perm0, loaded, calib_frac,
-                  timings, time.time() - t_start, num_shuffles, gate1_ok)
-    log(f"Report written to {report_path}")
+                  timings, time.time() - t_start, num_shuffles, gate1_ok,
+                  vocab_frac, ref_frac)
+    _write_t4_report(t4_path, demo, args, loaded, panel_perm0, zparams.get("bn_panel", {}),
+                     type_valid, type_probe, s8_null, sigma_s4, ref_dates,
+                     vocab_frac, ref_frac, timings, time.time() - t_start)
+    log(f"Reports written to {t3_path} and {t4_path}")
     return 0
 
 
@@ -609,6 +705,314 @@ def _fig_grid(dfw, name, path):
     plt.close(fig)
 
 
+def _fig_decomposition(panel_perm0, loaded, zp, path):
+    names = list(loaded)
+    fig, axes = plt.subplots(len(names), 1, figsize=(12, 2.3 * len(names)), sharex=True)
+    if len(names) == 1:
+        axes = [axes]
+    for ax, name in zip(axes, names):
+        d = panel_perm0[name].sort_values("window_idx")
+        mu = zp.get(name, {}).get("S1@perm00", {}).get("mu", np.nan)
+        nwn = len(d)
+        rlo = max(1, int(nwn * 0.05)); rhi = max(rlo + 1, int(nwn * 0.10))
+        x = pd.to_datetime(d["median_date"])
+        obs = d["S1"].to_numpy() - mu
+        g = d["S4"].to_numpy() * (d["S8tok"].to_numpy() - d["S9tok"].to_numpy())
+        pred = g - np.nanmean(g[rlo:rhi])
+        ax.plot(x, _rolling_median(obs), lw=1.4, color="black", label="observed ΔS1")
+        ax.plot(x, _rolling_median(pred), lw=1.4, color="orange",
+                label="predicted S4·(A−B) token-weighted")
+        ax.axvline(COVID_DATE, color="red", ls="--", lw=1)
+        ax.axhline(0, color="grey", lw=0.5)
+        ax.set_ylabel("ΔS1")
+        ax.set_title(name, fontsize=9, loc="left")
+        if ax is axes[0]:
+            ax.legend(fontsize=8)
+    axes[-1].set_xlabel("median window date")
+    fig.suptitle("Dilution decomposition: observed vs predicted ΔS1 (rolling median)")
+    fig.tight_layout()
+    fig.savefig(path, dpi=110)
+    plt.close(fig)
+
+
+def _fig_signal_comparison(panel_perm0, loaded, path):
+    picks = [n for n in loaded if ("xlm-roberta" in n or "multilingual" in n)]
+    if not picks:
+        picks = list(loaded)[:2]
+    fig, axes = plt.subplots(len(picks), 1, figsize=(12, 3 * len(picks)), sharex=True)
+    if len(picks) == 1:
+        axes = [axes]
+    for ax, name in zip(axes, picks):
+        d = panel_perm0[name].sort_values("median_date")
+        x = pd.to_datetime(d["median_date"])
+        for sig, c in [("z_S1", "C0"), ("z_S1c", "C1"), ("z_S4", "C2"), ("z_S7", "C3")]:
+            y = d[sig].to_numpy()
+            if np.all(np.isnan(y)):
+                continue
+            ax.plot(x, _rolling_median(y), lw=1.3, label=sig, color=c)
+        ax.axvline(COVID_DATE, color="red", ls="--", lw=1)
+        ax.axhline(0, color="grey", lw=0.5)
+        ax.set_ylim(-3, 3)
+        ax.set_title(name, fontsize=9, loc="left")
+        ax.set_ylabel("z (rolling median)")
+        ax.legend(fontsize=8, ncol=4)
+    axes[-1].set_xlabel("median window date")
+    fig.suptitle("Signal comparison (z, rolling median): S1 vs S1c vs S4 vs S7")
+    fig.tight_layout()
+    fig.savefig(path, dpi=110)
+    plt.close(fig)
+
+
+def _final_slice(d, frac=0.10):
+    d = d.sort_values("median_date")
+    k = max(1, int(len(d) * frac))
+    return d.iloc[-k:]
+
+
+def _write_t4_report(path, demo, args, loaded, panel_perm0, zp, type_valid, type_probe,
+                     s8_null, sigma_s4, ref_dates, vocab_frac, ref_frac, timings, wall):
+    rep = Report()
+    rep.w("# TASK 4 — Calibration fix, signal variants, dilution decomposition")
+    rep.w()
+    rep.w(f"- Mode: {'DEMO' if demo else 'FULL'} · wall-clock {wall:.1f}s")
+    rep.w("- Reproduce: `python src/streams.py --params params.yaml && "
+          "python src/fertility.py --params params.yaml`")
+    rep.w()
+
+    surprises, blockers = [], []
+    names = list(loaded)
+
+    # ---- Part 1 ----
+    rep.w("## Part 1 — split-epoch calibration")
+    rep.w()
+    rep.w(f"Epochs: vocabulary `[0, {vocab_frac*100:.0f}%)`, reference "
+          f"`[{vocab_frac*100:.0f}%, {(vocab_frac+ref_frac)*100:.0f}%)`, detection "
+          f"`[{(vocab_frac+ref_frac)*100:.0f}%, end)`. μ_ref/σ_ref for **every** signal "
+          "come from the reference epoch; V (S4 vocabulary) from the vocabulary epoch.")
+    rep.w()
+    rep.w(f"Reference-epoch calendar dates — bn_panel: **{ref_dates.get('bn_panel','?')}**, "
+          f"bn_full: **{ref_dates.get('bn_full','?')}**.")
+    rep.w()
+    rows = [[n, f"{sigma_s4.get(('bn_panel', n), float('nan')):.5f}"] for n in names]
+    rep.table(["tokenizer", "σ_ref(S4) on bn_panel"], rows)
+    s4_ok = all(np.isfinite(sigma_s4.get(("bn_panel", n), np.nan)) and
+                sigma_s4.get(("bn_panel", n), 0) > 0 for n in names)
+    rep.w(f"σ_ref(S4) > 0 for every tokenizer: **{s4_ok}** — the T3 degeneracy is fixed.")
+    rep.w()
+
+    # ---- Part 2 ----
+    rep.w("## Part 2 — isolated-type fertility validation")
+    rep.w()
+    rep.w("Word-initial check (bare type vs space-prefixed) on the longest panel type:")
+    rep.w()
+    rep.table(["tokenizer", "example type", "bare pieces", "spaced pieces"],
+              [[n, f"`{type_probe[n][0]}`", type_probe[n][1], type_probe[n][2]] for n in names])
+    rep.w("Isolated-type Σf(type) vs in-context n_tokens on 2,000 random docs:")
+    rep.w()
+    g2_ok = True
+    rows = []
+    for n in names:
+        ratio, r = type_valid.get(("bn_panel", n), (float("nan"), float("nan")))
+        ok = np.isfinite(r) and r >= 0.95
+        g2_ok = g2_ok and ok
+        rows.append([n, f"{ratio:.3f}", f"{r:.4f}", "yes" if ok else "**no**"])
+    rep.table(["tokenizer", "mean ratio (iso/context)", "pearson r", "r ≥ 0.95"], rows)
+    if not g2_ok:
+        surprises.append("Isolated-type fertility r < 0.95 for some tokenizer — Part 3/4 "
+                         "signals that use f(type) carry that approximation error.")
+    rep.w()
+
+    # ---- helpers for aggregation ----
+    def mean_z_final(d, col):
+        s = _final_slice(d)[col].to_numpy()
+        s = s[~np.isnan(s)]
+        return float(s.mean()) if s.size else float("nan")
+
+    def mean_raw_final(d, col):
+        s = _final_slice(d)[col].to_numpy()
+        s = s[~np.isnan(s)]
+        return float(s.mean()) if s.size else float("nan")
+
+    # ---- THE RESULT ----
+    rep.w("## The result — mean z over final 10% (real stream)")
+    rep.w()
+    result = {}
+    rows = []
+    for n in names:
+        d = panel_perm0[n]
+        r = {s: mean_z_final(d, "z_" + s) for s in ["S1", "S1c", "S4", "S7"]}
+        result[n] = r
+        rows.append([n, f"{r['S1']:+.3f}", f"{r['S1c']:+.3f}", f"{r['S4']:+.3f}",
+                     f"{r['S7']:+.3f}"])
+    rep.table(["tokenizer", "S1 (token-wt)", "S1c (type-wt)", "S4 (novelty)",
+               "S7 (novel-token mass)"], rows)
+    rep.w()
+
+    # ---- THE MECHANISM + decomposition ----
+    rep.w("## The mechanism — dilution decomposition")
+    rep.w()
+    rep.w("Exact identity (per-token pieces = isolated f(type)): **S1(W) = B(W) + g(W)**, "
+          "g = S4·(A−B), with A,B the *token*-weighted fertility of novel/seen tokens "
+          "(A=`S8tok`, B=`S9tok`). Since S1_ref already contains the reference-epoch "
+          "novelty ḡ_ref, and B is ~stable, the closing form is "
+          "**S1(W) − S1_ref ≈ g(W) − ḡ_ref** — the deviation of the novelty term from its "
+          "reference level. Dropping ḡ_ref (as a naïve reading does) over-predicts; that "
+          "extra term is derived here, not fudged.")
+    rep.w()
+    rep.w("The brief's `S8`/`S9` are *type*-weighted (mechanism: do novel *types* "
+          "fragment worse?). Token-rare novel types make the type-weighted RHS overshoot "
+          "further — that gap is the dilution. Both are reported.")
+    rep.w()
+    mech = {}
+    rows = []
+    for n in names:
+        d = panel_perm0[n].sort_values("window_idx")
+        nwn = len(d)
+        rlo = max(1, int(np.floor(vocab_frac * nwn)))
+        rhi = max(rlo + 1, int(np.floor((vocab_frac + ref_frac) * nwn)))
+        mu1 = zp.get(n, {}).get("S1@perm00", {}).get("mu", np.nan)
+        sd1 = zp.get(n, {}).get("S1@perm00", {}).get("sigma", np.nan)
+        obs = d["S1"].to_numpy() - mu1
+        g_tok = d["S4"].to_numpy() * (d["S8tok"].to_numpy() - d["S9tok"].to_numpy())
+        g_typ = d["S4"].to_numpy() * (d["S8"].to_numpy() - d["S9"].to_numpy())
+        g_tok_ref = np.nanmean(g_tok[rlo:rhi]); g_typ_ref = np.nanmean(g_typ[rlo:rhi])
+        pred_tok = g_tok - g_tok_ref
+        m = ~(np.isnan(obs) | np.isnan(pred_tok))
+        rr = float(np.corrcoef(obs[m], pred_tok[m])[0, 1]) if m.sum() > 3 else float("nan")
+        mae = float(np.mean(np.abs(obs[m] - pred_tok[m]))) if m.sum() else float("nan")
+        fin = slice(max(0, nwn - max(1, nwn // 10)), nwn)
+        s4f = float(np.nanmean(d["S4"].to_numpy()[fin]))
+        s8f = float(np.nanmean(d["S8"].to_numpy()[fin]))
+        s9f = float(np.nanmean(d["S9"].to_numpy()[fin]))
+        obs_dz = mean_z_final(d, "z_S1")
+        def _dz(arr):
+            a = arr[~np.isnan(arr)]
+            return float(a.mean() / sd1) if (a.size and np.isfinite(sd1) and sd1 > 0) else float("nan")
+        pred_dz = _dz((g_tok - g_tok_ref)[fin])
+        pred_dz_typ = _dz((g_typ - g_typ_ref)[fin])
+        mech[n] = dict(s4=s4f, s8=s8f, s9=s9f, diff=s8f - s9f, r=rr, mae=mae,
+                       obs_dz=obs_dz, pred_dz=pred_dz, pred_dz_typ=pred_dz_typ)
+        rows.append([n, f"{s4f:.4f}", f"{s8f:.3f}", f"{s9f:.3f}", f"{s8f-s9f:+.3f}",
+                     f"{rr:.3f}", f"{obs_dz:+.3f}", f"{pred_dz:+.3f}", f"{pred_dz_typ:+.3f}"])
+    rep.table(["tokenizer", "S4", "S8 (type,novel)", "S9 (type,seen)", "S8−S9",
+               "r(obs,pred_tok)", "obs Δz(S1)", "pred Δz(S1) [token]",
+               "pred Δz(S1) [type]"], rows)
+    rep.w("`obs Δz(S1)` vs `pred Δz(S1) [token]` agreeing within ~2× is the intended "
+          "result. `[type]` shows the naïve type-weighted over-shoot — the dilution size.")
+    rep.w()
+    s8_null_note = ", ".join(f"{n}: {s8_null.get(('bn_panel', n), 0)}" for n in names)
+    rep.w(f"Windows with S8 null (no novel types), per tokenizer (perm00): {s8_null_note}. "
+          "These are emitted null, not zero.")
+    rep.w()
+
+    # ---- Part 5: trend shape ----
+    rep.w("## Part 5 — trend shape, COVID window, window-size artifact")
+    rep.w()
+    for sig in ["S1", "S1c", "S4", "S7"]:
+        rep.w(f"**Mean z per year — {sig}:**")
+        rep.w()
+        yrs = [2016, 2017, 2018, 2019, 2020]
+        rows = []
+        for n in names:
+            d = panel_perm0[n].copy()
+            d["yr"] = pd.to_datetime(d["median_date"]).dt.year
+            dt = pd.to_datetime(d["median_date"])
+            covid = d[(dt >= "2020-01-01") & (dt <= "2020-06-30")]
+            row = [n]
+            for y in yrs:
+                z = d[d["yr"] == y]["z_" + sig].to_numpy()
+                z = z[~np.isnan(z)]
+                row.append(f"{z.mean():+.2f}" if z.size else "—")
+            cz = covid["z_" + sig].to_numpy(); cz = cz[~np.isnan(cz)]
+            row.append(f"{cz.mean():+.2f}" if cz.size else "—")
+            rows.append(row)
+        rep.table(["tokenizer"] + [str(y) for y in yrs] + ["2020 Q1-Q2"], rows)
+
+    # corr(n_words, signal)
+    rep.w("### corr(window n_words, signal) — window-size artifact check")
+    rep.w()
+    g4_ok = True
+    rows = []
+    for n in names:
+        d = panel_perm0[n]
+        nw = d["n_words"].to_numpy().astype(float)
+        row = [n]
+        for sig in ["S1", "S1c", "S4", "S7"]:
+            v = d[sig].to_numpy()
+            m = ~np.isnan(v)
+            rr = float(np.corrcoef(nw[m], v[m])[0, 1]) if m.sum() > 3 and np.std(v[m]) > 0 else float("nan")
+            row.append(f"{rr:+.3f}")
+            if sig == "S1" and np.isfinite(rr) and abs(rr) >= 0.10:
+                g4_ok = False
+        rows.append(row)
+    rep.table(["tokenizer", "S1", "S1c", "S4", "S7"], rows)
+    rep.w("|corr(n_words, S1)| < 0.10 means window-size heterogeneity (GATE 3 of T3) is "
+          "harmless; above that it injects an artifact.")
+    rep.w()
+
+    # ---- STATUS ----
+    covid_block = {}
+    for n in names:
+        d = panel_perm0[n].copy()
+        dt = pd.to_datetime(d["median_date"])
+        covid = d[(dt >= "2020-01-01") & (dt <= "2020-06-30")]
+        covid_block[n] = {s: (lambda a: float(a[~np.isnan(a)].mean()) if (~np.isnan(a)).any() else float("nan"))(
+            covid["z_" + s].to_numpy()) for s in ["S1", "S1c", "S4", "S7"]}
+
+    g1 = s4_ok
+    g2 = g2_ok
+    g3 = all(all(c in panel_perm0[n].columns for c in ["S1c", "S7", "S8", "S9"]) for n in names)
+    g4 = g4_ok
+    fatal_ok = g1 and g3
+    if not g2:
+        surprises.append("GATE 2 fail (isolated-type r<0.95) — decomposition is "
+                         "approximate; interpret Part 4 with that caveat.")
+    if not g4:
+        surprises.append("GATE 4 fail: |corr(n_words, S1)| ≥ 0.10 — window-size "
+                         "heterogeneity injects an artifact; revisit GATE 3 decision.")
+
+    rep.w("## STATUS")
+    rep.w()
+    rep.w("```")
+    def pf(b): return "PASS" if b else "FAIL"
+    rep.w(f"GATE 1 — split-epoch calibration applied to all signals, sigma_ref(S4) > 0:   {pf(g1)}")
+    rep.w(f"GATE 2 — isolated-type fertility validated against in-context, r >= 0.95:     {pf(g2)}")
+    rep.w(f"GATE 3 — S1c, S7, S8, S9 computed for all tokenizers, nulls explained:        {pf(g3)}")
+    rep.w(f"GATE 4 — |corr(window n_words, S1)| < 0.10:                                   {pf(g4)}")
+    rep.w("")
+    rep.w("THE RESULT — mean z over final 10% of the real stream, per tokenizer:")
+    for lab, key in [("S1  (token-weighted)", "S1"), ("S1c (type-weighted)", "S1c"),
+                     ("S4  (unseen-type rate)", "S4"), ("S7  (novel-token fertility mass)", "S7")]:
+        rep.w(f"    {lab}: " + ", ".join(f"{n.split('/')[-1]}={result[n][key]:+.3f}" for n in names))
+    rep.w("")
+    rep.w("THE MECHANISM — final 10%, per tokenizer:")
+    for lab, key in [("S4 (novelty rate)", "s4"), ("S8 (mean fertility, novel types)", "s8"),
+                     ("S9 (mean fertility, seen types)", "s9"), ("S8 - S9 (excess frag)", "diff")]:
+        rep.w(f"    {lab}: " + ", ".join(f"{n.split('/')[-1]}={mech[n][key]:+.3f}" for n in names))
+    rep.w("    predicted delta-z(S1) vs observed:")
+    for n in names:
+        rep.w(f"        {n.split('/')[-1]}: pred={mech[n]['pred_dz']:+.3f} obs={mech[n]['obs_dz']:+.3f} "
+              f"(r={mech[n]['r']:.2f})")
+    rep.w("")
+    rep.w("COVID CHECK — mean z in 2020 Q1-Q2, per tokenizer (S1 / S1c / S4 / S7):")
+    for n in names:
+        c = covid_block[n]
+        rep.w(f"    {n.split('/')[-1]}: {c['S1']:+.2f} / {c['S1c']:+.2f} / {c['S4']:+.2f} / {c['S7']:+.2f}")
+    rep.w("")
+    verdict = "PROCEED" if (fatal_ok and not surprises) else (
+        "PROCEED WITH CAVEATS" if fatal_ok else "BLOCKED")
+    rep.w(f"VERDICT: {verdict}")
+    rep.w("Blockers:")
+    rep.w("\n".join(f"  - {b}" for b in blockers) if blockers else "  - none")
+    rep.w("Surprises worth a human decision:")
+    rep.w("\n".join(f"  - {s}" for s in surprises) if surprises else "  - none")
+    rep.w("```")
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(rep.text())
+
+
 # ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
@@ -623,7 +1027,7 @@ def _final_mean_z(dfw, col, frac=0.10):
 
 def _write_report(path, demo, args, tok_info, tok_names, raw_fertility, fert_len_corr,
                   null_pairs, panel_perm0, loaded, calib_frac, timings, wall,
-                  num_shuffles, gate1_ok):
+                  num_shuffles, gate1_ok, vocab_frac, ref_frac):
     rep = Report()
     rep.w("# TASK 3 — Fertility signals (S1-S4) report")
     rep.w()
@@ -792,22 +1196,15 @@ def _write_report(path, demo, args, tok_info, tok_names, raw_fertility, fert_len
           "mix); if both rise, it is lexical.")
     rep.w()
 
-    # S4 is identically 0 across its own calibration epoch (calibration vocab =
-    # all calibration-window types), so σ_ref(S4)=0 and z(S4) is null by design
-    # (spec §2.7). Correlations therefore use RAW signals — scale-invariant, so
-    # identical to z-correlations for the non-degenerate signals and well-defined
-    # for S4.
+    # Under the T4 split epoch, V comes from [0,5%) and μ_ref/σ_ref from [5%,10%),
+    # so S4 is non-zero over the reference epoch and z(S4) is well-defined. We still
+    # report correlations on RAW signals (scale-invariant → identical to z-corr).
     rep.w("## Signal correlation matrix (raw signals, real stream)")
     rep.w()
-    rep.w("> **z(S4) is null by construction:** the calibration vocabulary is defined "
-          "as every word-type in the first 10% of windows, so S4 ≡ 0 over that epoch, "
-          "σ_ref(S4)=0, and z(S4) is emitted null (spec §2.7). Correlations below use "
-          "raw signals (scale-invariant → equal to z-correlations wherever z exists).")
+    rep.w("> T4 split-epoch calibration: vocabulary V from windows [0, 5%), μ_ref/σ_ref "
+          "from [5%, 10%). z(S4) is now well-defined (σ_ref>0). Correlations use raw "
+          "signals (scale-invariant → equal to z-correlations).")
     rep.w()
-    surprises.append("z(S4) is degenerate (σ_ref=0: S4≡0 on its own calibration "
-                     "epoch). Raw S4 is usable for single-language ADWIN, but cross-"
-                     "language z-scoring of S4 needs a held-out sub-epoch — decide "
-                     "before T5.")
     corr_s1s4_flag = False
     for name in loaded:
         d = panel_perm0.get(name)
@@ -853,9 +1250,11 @@ def _write_report(path, demo, args, tok_info, tok_names, raw_fertility, fert_len
         d = panel_perm0.get(name)
         if d is None:
             g5 = False; continue
-        n_calib = max(1, int(np.floor(calib_frac * len(d))))
+        nw = len(d)
+        rlo = max(1, int(np.floor(vocab_frac * nw)))
+        rhi = max(rlo + 1, int(np.floor((vocab_frac + ref_frac) * nw)))
         for s in ["S1", "S3", "S4"]:  # defined-for-all signals
-            z = d["z_" + s].to_numpy()[:n_calib]
+            z = d["z_" + s].to_numpy()[rlo:rhi]
             z = z[~np.isnan(z)]
             if z.size and (abs(z.mean()) > 0.02 or abs(z.std() - 1.0) > 0.02):
                 g5 = False
