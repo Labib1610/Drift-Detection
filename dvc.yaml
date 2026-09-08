@@ -21,3 +21,14 @@ stages:
     outs:
     - features/fertility
     - features/windows
+  prepare:
+    cmd: python src/prepare.py --lang bn --params params.yaml
+    deps:
+    - data/raw/bn_potrika
+    - src/prepare.py
+    params:
+    - bn
+    - data
+    - seed
+    outs:
+    - data/interim

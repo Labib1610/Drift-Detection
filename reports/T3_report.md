@@ -1,10 +1,10 @@
 # TASK 3 — Fertility signals (S1-S4) report
 
-- Mode: FULL · wall-clock 304.6s
+- Mode: FULL · wall-clock 388.9s
 - Reproduce:
 ```
 python src/streams.py --params params.yaml
-python src/fertility.py --params params.yaml --report reports/T3_report.md
+python src/fertility.py --params params.yaml --report reports/T4_report.md
 ```
 
 ## Permutation validity
@@ -70,31 +70,31 @@ Deviation from spec §5.2 (verbatim for the paper): *windows are built by greedy
 
 | tokenizer | signal | μ_ref | σ_ref | mean z (final 10%) |
 | --- | --- | --- | --- | --- |
-| bert-base-multilingual-cased | S1 | 2.7166 | 0.1044 | +0.108 |
-| bert-base-multilingual-cased | S2 | 0.0541 | 0.0067 | -0.155 |
-| bert-base-multilingual-cased | S3 | 0.5703 | 0.0239 | +0.282 |
-| bert-base-multilingual-cased | S4 | 0.0000 | 0.0000 | null |
-| bert-base-multilingual-cased | S1b | 2.7497 | 0.0728 | -0.001 |
-| xlm-roberta-base | S1 | 2.0546 | 0.0814 | -0.194 |
+| bert-base-multilingual-cased | S1 | 2.7151 | 0.1046 | +0.122 |
+| bert-base-multilingual-cased | S2 | 0.0540 | 0.0067 | -0.134 |
+| bert-base-multilingual-cased | S3 | 0.5695 | 0.0249 | +0.305 |
+| bert-base-multilingual-cased | S4 | 0.0479 | 0.0169 | +0.634 |
+| bert-base-multilingual-cased | S1b | 2.7486 | 0.0699 | +0.014 |
+| xlm-roberta-base | S1 | 2.0597 | 0.0806 | -0.260 |
 | xlm-roberta-base | S2 | 0.0000 | 0.0000 | null |
-| xlm-roberta-base | S3 | 0.5172 | 0.0200 | -0.205 |
-| xlm-roberta-base | S4 | 0.0000 | 0.0000 | null |
-| xlm-roberta-base | S1b | 2.0606 | 0.0616 | -0.052 |
-| meta-llama/Llama-3.2-1B | S1 | 7.7069 | 0.3631 | +0.138 |
+| xlm-roberta-base | S3 | 0.5180 | 0.0197 | -0.253 |
+| xlm-roberta-base | S4 | 0.0479 | 0.0169 | +0.634 |
+| xlm-roberta-base | S1b | 2.0638 | 0.0595 | -0.108 |
+| meta-llama/Llama-3.2-1B | S1 | 7.6799 | 0.3846 | +0.201 |
 | meta-llama/Llama-3.2-1B | S2 | null | null | null |
-| meta-llama/Llama-3.2-1B | S3 | 0.8733 | 0.0075 | +0.152 |
-| meta-llama/Llama-3.2-1B | S4 | 0.0000 | 0.0000 | null |
-| meta-llama/Llama-3.2-1B | S1b | 7.8140 | 0.1607 | +0.064 |
-| Qwen/Qwen2.5-0.5B | S1 | 6.9894 | 0.3095 | +0.130 |
+| meta-llama/Llama-3.2-1B | S3 | 0.8727 | 0.0081 | +0.218 |
+| meta-llama/Llama-3.2-1B | S4 | 0.0479 | 0.0169 | +0.634 |
+| meta-llama/Llama-3.2-1B | S1b | 7.8039 | 0.1520 | +0.134 |
+| Qwen/Qwen2.5-0.5B | S1 | 6.9689 | 0.3270 | +0.185 |
 | Qwen/Qwen2.5-0.5B | S2 | null | null | null |
-| Qwen/Qwen2.5-0.5B | S3 | 0.8603 | 0.0078 | +0.152 |
-| Qwen/Qwen2.5-0.5B | S4 | 0.0000 | 0.0000 | null |
-| Qwen/Qwen2.5-0.5B | S1b | 7.0808 | 0.1372 | +0.061 |
-| bigscience/bloom-560m | S1 | 1.6975 | 0.0813 | -0.365 |
+| Qwen/Qwen2.5-0.5B | S3 | 0.8597 | 0.0083 | +0.212 |
+| Qwen/Qwen2.5-0.5B | S4 | 0.0479 | 0.0169 | +0.634 |
+| Qwen/Qwen2.5-0.5B | S1b | 7.0738 | 0.1281 | +0.120 |
+| bigscience/bloom-560m | S1 | 1.7074 | 0.0806 | -0.490 |
 | bigscience/bloom-560m | S2 | null | null | null |
-| bigscience/bloom-560m | S3 | 0.4260 | 0.0291 | -0.279 |
-| bigscience/bloom-560m | S4 | 0.0000 | 0.0000 | null |
-| bigscience/bloom-560m | S1b | 1.7052 | 0.0496 | -0.188 |
+| bigscience/bloom-560m | S3 | 0.4291 | 0.0278 | -0.402 |
+| bigscience/bloom-560m | S4 | 0.0479 | 0.0169 | +0.634 |
+| bigscience/bloom-560m | S1b | 1.7101 | 0.0497 | -0.287 |
 
 ## Null / undefined (tokenizer, signal) pairs
 
@@ -103,37 +103,17 @@ Deviation from spec §5.2 (verbatim for the paper): *windows are built by greedy
 | bn_panel | meta-llama/Llama-3.2-1B | S2 byte-fallback (byte-level BPE) |
 | bn_panel | Qwen/Qwen2.5-0.5B | S2 byte-fallback (byte-level BPE) |
 | bn_panel | bigscience/bloom-560m | S2 byte-fallback (byte-level BPE) |
-| bn_panel | bert-base-multilingual-cased | S4 (z all null) |
-| bn_panel | bert-base-multilingual-cased | S4_type (z all null) |
 | bn_panel | xlm-roberta-base | S2 (z all null) |
-| bn_panel | xlm-roberta-base | S4 (z all null) |
-| bn_panel | xlm-roberta-base | S4_type (z all null) |
 | bn_panel | meta-llama/Llama-3.2-1B | S2 (z all null) |
-| bn_panel | meta-llama/Llama-3.2-1B | S4 (z all null) |
-| bn_panel | meta-llama/Llama-3.2-1B | S4_type (z all null) |
 | bn_panel | Qwen/Qwen2.5-0.5B | S2 (z all null) |
-| bn_panel | Qwen/Qwen2.5-0.5B | S4 (z all null) |
-| bn_panel | Qwen/Qwen2.5-0.5B | S4_type (z all null) |
 | bn_panel | bigscience/bloom-560m | S2 (z all null) |
-| bn_panel | bigscience/bloom-560m | S4 (z all null) |
-| bn_panel | bigscience/bloom-560m | S4_type (z all null) |
 | bn_full | meta-llama/Llama-3.2-1B | S2 byte-fallback (byte-level BPE) |
 | bn_full | Qwen/Qwen2.5-0.5B | S2 byte-fallback (byte-level BPE) |
 | bn_full | bigscience/bloom-560m | S2 byte-fallback (byte-level BPE) |
-| bn_full | bert-base-multilingual-cased | S4 (z all null) |
-| bn_full | bert-base-multilingual-cased | S4_type (z all null) |
 | bn_full | xlm-roberta-base | S2 (z all null) |
-| bn_full | xlm-roberta-base | S4 (z all null) |
-| bn_full | xlm-roberta-base | S4_type (z all null) |
 | bn_full | meta-llama/Llama-3.2-1B | S2 (z all null) |
-| bn_full | meta-llama/Llama-3.2-1B | S4 (z all null) |
-| bn_full | meta-llama/Llama-3.2-1B | S4_type (z all null) |
 | bn_full | Qwen/Qwen2.5-0.5B | S2 (z all null) |
-| bn_full | Qwen/Qwen2.5-0.5B | S4 (z all null) |
-| bn_full | Qwen/Qwen2.5-0.5B | S4_type (z all null) |
 | bn_full | bigscience/bloom-560m | S2 (z all null) |
-| bn_full | bigscience/bloom-560m | S4 (z all null) |
-| bn_full | bigscience/bloom-560m | S4_type (z all null) |
 
 All nulls above are intentional: byte-level BPE has no byte-fallback concept, so S2 is emitted as null rather than a fabricated zero.
 
@@ -141,86 +121,88 @@ All nulls above are intentional: byte-level BPE has no byte-fallback concept, so
 
 | tokenizer | mean z S1 (final 10%) | mean z S1b (final 10%) | topic-absent fallbacks |
 | --- | --- | --- | --- |
-| bert-base-multilingual-cased | +0.108 | -0.001 | 49697 |
-| xlm-roberta-base | -0.194 | -0.052 | 49697 |
-| meta-llama/Llama-3.2-1B | +0.138 | +0.064 | 49697 |
-| Qwen/Qwen2.5-0.5B | +0.130 | +0.061 | 49697 |
-| bigscience/bloom-560m | -0.365 | -0.188 | 49697 |
+| bert-base-multilingual-cased | +0.122 | +0.014 | 49697 |
+| xlm-roberta-base | -0.260 | -0.108 | 49697 |
+| meta-llama/Llama-3.2-1B | +0.201 | +0.134 | 49697 |
+| Qwen/Qwen2.5-0.5B | +0.185 | +0.120 | 49697 |
+| bigscience/bloom-560m | -0.490 | -0.287 | 49697 |
 
 If S1 rises but S1b does not, late-period drift is compositional (topic mix); if both rise, it is lexical.
 
 ## Signal correlation matrix (raw signals, real stream)
 
-> **z(S4) is null by construction:** the calibration vocabulary is defined as every word-type in the first 10% of windows, so S4 ≡ 0 over that epoch, σ_ref(S4)=0, and z(S4) is emitted null (spec §2.7). Correlations below use raw signals (scale-invariant → equal to z-correlations wherever z exists).
+> T4 split-epoch calibration: vocabulary V from windows [0, 5%), μ_ref/σ_ref from [5%, 10%). z(S4) is now well-defined (σ_ref>0). Correlations use raw signals (scale-invariant → equal to z-correlations).
 
 **bert-base-multilingual-cased:**
 
 |  | S1 | S2 | S3 | S4 |
 | --- | --- | --- | --- | --- |
-| S1 | 1.000 | -0.152 | 0.775 | -0.081 |
-| S2 | -0.152 | 1.000 | 0.049 | -0.193 |
-| S3 | 0.775 | 0.049 | 1.000 | -0.306 |
-| S4 | -0.081 | -0.193 | -0.306 | 1.000 |
+| S1 | 1.000 | -0.152 | 0.775 | -0.173 |
+| S2 | -0.152 | 1.000 | 0.049 | -0.222 |
+| S3 | 0.775 | 0.049 | 1.000 | -0.421 |
+| S4 | -0.173 | -0.222 | -0.421 | 1.000 |
 
 **xlm-roberta-base:**
 
 |  | S1 | S2 | S3 | S4 |
 | --- | --- | --- | --- | --- |
-| S1 | 1.000 | null | 0.744 | 0.177 |
+| S1 | 1.000 | null | 0.744 | 0.147 |
 | S2 | null | null | null | null |
-| S3 | 0.744 | null | 1.000 | 0.010 |
-| S4 | 0.177 | null | 0.010 | 1.000 |
+| S3 | 0.744 | null | 1.000 | -0.010 |
+| S4 | 0.147 | null | -0.010 | 1.000 |
 
 **meta-llama/Llama-3.2-1B:**
 
 |  | S1 | S2 | S3 | S4 |
 | --- | --- | --- | --- | --- |
-| S1 | 1.000 | null | 0.905 | -0.348 |
+| S1 | 1.000 | null | 0.905 | -0.477 |
 | S2 | null | null | null | null |
-| S3 | 0.905 | null | 1.000 | -0.393 |
-| S4 | -0.348 | null | -0.393 | 1.000 |
+| S3 | 0.905 | null | 1.000 | -0.514 |
+| S4 | -0.477 | null | -0.514 | 1.000 |
 
 **Qwen/Qwen2.5-0.5B:**
 
 |  | S1 | S2 | S3 | S4 |
 | --- | --- | --- | --- | --- |
-| S1 | 1.000 | null | 0.914 | -0.342 |
+| S1 | 1.000 | null | 0.914 | -0.471 |
 | S2 | null | null | null | null |
-| S3 | 0.914 | null | 1.000 | -0.395 |
-| S4 | -0.342 | null | -0.395 | 1.000 |
+| S3 | 0.914 | null | 1.000 | -0.517 |
+| S4 | -0.471 | null | -0.517 | 1.000 |
 
 **bigscience/bloom-560m:**
 
 |  | S1 | S2 | S3 | S4 |
 | --- | --- | --- | --- | --- |
-| S1 | 1.000 | null | 0.738 | 0.201 |
+| S1 | 1.000 | null | 0.738 | 0.200 |
 | S2 | null | null | null | null |
-| S3 | 0.738 | null | 1.000 | 0.117 |
-| S4 | 0.201 | null | 0.117 | 1.000 |
+| S3 | 0.738 | null | 1.000 | 0.153 |
+| S4 | 0.200 | null | 0.153 | 1.000 |
 
 ## Wall-clock timing
 
 | stage | seconds |
 | --- | --- |
 | load bert-base-multilingual-cased | 2.4 |
-| load xlm-roberta-base | 3.3 |
-| load meta-llama_Llama-3.2-1B | 1.9 |
-| load Qwen_Qwen2.5-0.5B | 1.6 |
-| load bigscience_bloom-560m | 2.5 |
-| bn_panel: ICU types | 10.0 |
-| bn_panel: tokenize bert-base-multilingual-cased | 18.8 |
-| bn_panel: tokenize xlm-roberta-base | 17.6 |
-| bn_panel: tokenize meta-llama_Llama-3.2-1B | 36.2 |
-| bn_panel: tokenize Qwen_Qwen2.5-0.5B | 37.8 |
-| bn_panel: tokenize bigscience_bloom-560m | 17.9 |
-| bn_panel: total | 166.4 |
+| load xlm-roberta-base | 3.6 |
+| load meta-llama_Llama-3.2-1B | 2.0 |
+| load Qwen_Qwen2.5-0.5B | 1.8 |
+| load bigscience_bloom-560m | 2.6 |
+| bn_panel: ICU types | 10.1 |
+| bn_panel: tokenize bert-base-multilingual-cased | 19.6 |
+| bn_panel: tokenize xlm-roberta-base | 18.0 |
+| bn_panel: tokenize meta-llama_Llama-3.2-1B | 38.6 |
+| bn_panel: tokenize Qwen_Qwen2.5-0.5B | 38.4 |
+| bn_panel: tokenize bigscience_bloom-560m | 18.7 |
+| bn_panel: type-fertility | 25.0 |
+| bn_panel: total | 221.4 |
 | bn_full: ICU types | 8.6 |
-| bn_full: tokenize bert-base-multilingual-cased | 18.4 |
-| bn_full: tokenize xlm-roberta-base | 17.6 |
-| bn_full: tokenize meta-llama_Llama-3.2-1B | 31.1 |
-| bn_full: tokenize Qwen_Qwen2.5-0.5B | 31.5 |
+| bn_full: tokenize bert-base-multilingual-cased | 18.9 |
+| bn_full: tokenize xlm-roberta-base | 17.9 |
+| bn_full: tokenize meta-llama_Llama-3.2-1B | 32.8 |
+| bn_full: tokenize Qwen_Qwen2.5-0.5B | 32.5 |
 | bn_full: tokenize bigscience_bloom-560m | 15.6 |
-| bn_full: total | 125.7 |
+| bn_full: type-fertility | 22.6 |
+| bn_full: total | 153.8 |
 
 ## STATUS
 
@@ -233,28 +215,27 @@ GATE 5 — z-scored calibration epoch has mean ~0, sd ~1 for every stream:     P
 GATE 6 — S4 computed with a frozen calibration vocabulary, no leakage:       PASS
 
 OBSERVATION — mean z of S1 in the final 10% of the real stream, per tokenizer:
-    bert-base-multilingual-cased: +0.108
-    xlm-roberta-base: -0.194
-    meta-llama/Llama-3.2-1B: +0.138
-    Qwen/Qwen2.5-0.5B: +0.130
-    bigscience/bloom-560m: -0.365
+    bert-base-multilingual-cased: +0.122
+    xlm-roberta-base: -0.260
+    meta-llama/Llama-3.2-1B: +0.201
+    Qwen/Qwen2.5-0.5B: +0.185
+    bigscience/bloom-560m: -0.490
 OBSERVATION — same for S1b (topic-adjusted):
-    bert-base-multilingual-cased: -0.001
-    xlm-roberta-base: -0.052
-    meta-llama/Llama-3.2-1B: +0.064
-    Qwen/Qwen2.5-0.5B: +0.061
-    bigscience/bloom-560m: -0.188
+    bert-base-multilingual-cased: +0.014
+    xlm-roberta-base: -0.108
+    meta-llama/Llama-3.2-1B: +0.134
+    Qwen/Qwen2.5-0.5B: +0.120
+    bigscience/bloom-560m: -0.287
 OBSERVATION — corr(S1, S4) on the real stream:
-    bert-base-multilingual-cased: -0.081
-    xlm-roberta-base: 0.177
-    meta-llama/Llama-3.2-1B: -0.348
-    Qwen/Qwen2.5-0.5B: -0.342
-    bigscience/bloom-560m: 0.201
+    bert-base-multilingual-cased: -0.173
+    xlm-roberta-base: 0.147
+    meta-llama/Llama-3.2-1B: -0.477
+    Qwen/Qwen2.5-0.5B: -0.471
+    bigscience/bloom-560m: 0.200
 
 VERDICT: PROCEED WITH CAVEATS
 Blockers:
   - none
 Surprises worth a human decision:
-  - z(S4) is degenerate (σ_ref=0: S4≡0 on its own calibration epoch). Raw S4 is usable for single-language ADWIN, but cross-language z-scoring of S4 needs a held-out sub-epoch — decide before T5.
   - GATE 3 fail: window n_words p99=3377 ≥ 3000. A few very long articles create oversized windows (median is tight at ~2160). Non-fatal — signals are valid. Decide: accept, raise the gate, or drop docs above ~1500 words.
 ```
