@@ -29,9 +29,10 @@ streams:
   num_shuffles: 10
 
 adwin:
-  # log grid 1e-6 .. 0.5, 13 points (larger delta = more sensitive detector)
-  delta_grid: [1.0e-6, 3.0e-6, 1.0e-5, 3.0e-5, 1.0e-4, 3.0e-4, 1.0e-3, 3.0e-3,
-               1.0e-2, 3.0e-2, 1.0e-1, 3.0e-1, 5.0e-1]
+  # extended grid covering (0,1) up to 0.99 (T5b Problem 1); larger delta = more
+  # sensitive detector — verified empirically on the null streams in the report.
+  delta_grid: [1.0e-6, 1.0e-5, 1.0e-4, 1.0e-3, 0.01, 0.05, 0.1, 0.2, 0.3, 0.5,
+               0.7, 0.9, 0.95, 0.99]
   target_far: 0.001            # 1 alarm per 1,000 null windows
   far_sensitivity: [0.01, 0.0001]   # sensitivity check at 1e-2 and 1e-4
 
@@ -39,6 +40,26 @@ detect:
   changepoint: "2020-03-08"    # Bangladesh first COVID-19 cases (ground-truth t*)
   covid_window_days: 60
   signals: [S1, S1c, S3, S4, S7]
+
+synthetic:                     # T5b Problem 3a — semi-synthetic drift injection
+  intensities: [0.05, 0.10, 0.25, 0.50, 1.00]
+  replicates: 20
+  n_windows: 2000              # per synthetic stream (< real detection epoch; see report)
+  early_years: [2016, 2017]
+  late_years: [2020]
+  wstar_low: 0.20              # W* drawn uniformly from the middle 60% of the stream
+  wstar_high: 0.80
+  seed: 42
+
+# T5b Problem 3b — real changepoints, each date verified against a cited source.
+changepoints:
+  - {name: rohingya_influx,      date: "2017-08-25", source: "Crisis Group / CFR — ARSA attacks 25 Aug 2017 triggered exodus"}
+  - {name: khaleda_zia_jailed,   date: "2018-02-08", source: "The Daily Star / Business Standard — sentenced 8 Feb 2018"}
+  - {name: road_safety_protests, date: "2018-07-29", source: "Wikipedia / TIME / NPR — bus killed 2 students 29 Jul 2018"}
+  - {name: parliamentary_election, date: "2018-12-30", source: "IPU Parline / APF Canada — 11th election 30 Dec 2018"}
+  - {name: nusrat_rafi_murder,   date: "2019-04-10", source: "HRW / CBS — attacked 6 Apr, died 10 Apr 2019"}
+  - {name: abrar_fahad_killing,  date: "2019-10-07", source: "Wikipedia / The Daily Star — killed night 6-7 Oct 2019"}
+  - {name: covid_first_cases,    date: "2020-03-08", source: "IEDCR / Frontiers Public Health — first 3 cases 8 Mar 2020"}
 
 ccnews:
   repo: stanford-oval/ccnews

@@ -38,8 +38,8 @@ stages:
       nfiles: 3
     - path: src/fertility.py
       hash: md5
-      md5: 3d02d3c4220bc7ed2c22db9cdd353f32
-      size: 40273
+      md5: ccead33ee92dd77679e100344ddec9b5
+      size: 60300
     params:
       params.yaml:
         tokenizers:
@@ -51,6 +51,8 @@ stages:
         window:
           words_per_window: 2000
           calibration_fraction: 0.1
+          vocab_fraction: 0.05
+          reference_fraction: 0.05
     outs:
     - path: features/fertility
       hash: md5
@@ -59,6 +61,82 @@ stages:
       nfiles: 10
     - path: features/windows
       hash: md5
-      md5: f2e2968fc0435454d6c31dacd4d1015e.dir
-      size: 66230393
+      md5: 6e288bb0ce8c9d409152ef174132b0f4.dir
+      size: 134848740
       nfiles: 61
+  prepare:
+    cmd: python src/prepare.py --lang bn --params params.yaml
+    deps:
+    - path: data/raw/bn_potrika
+      hash: md5
+      md5: d2253f905c1d17dede543f972b705995.dir
+      size: 4282557755
+      nfiles: 71
+    - path: src/prepare.py
+      hash: md5
+      md5: ad355e0af194f97240418e77bd4fdb69
+      size: 23082
+    params:
+      params.yaml:
+        bn:
+          raw_dir: data/raw/bn_potrika/RawDataset
+          panel_publishers:
+          - Inqilab
+          - Jugantor
+          - Kaler Kontho
+          panel_start: 2016-01
+          panel_end: 2020-12
+        data:
+          max_docs_per_language: 100000
+          min_doc_words: 50
+          top_k_publishers: 3
+          languages:
+          - bn
+          - en
+          - hi
+          - ar
+          - uk
+        seed: 42
+    outs:
+    - path: data/interim
+      hash: md5
+      md5: 60504bce6c528011f85345c338f75015.dir
+      size: 217164296
+      nfiles: 2
+  detect:
+    cmd: python src/detect.py --params params.yaml
+    deps:
+    - path: features/windows
+      hash: md5
+      md5: 6e288bb0ce8c9d409152ef174132b0f4.dir
+      size: 134848740
+      nfiles: 61
+    - path: src/detect.py
+      hash: md5
+      md5: 2be06734e659868dc207667428c58b1b
+      size: 66811
+    params:
+      params.yaml:
+        detect:
+          changepoint: '2020-03-08'
+          covid_window_days: 60
+          signals:
+          - S1
+          - S1c
+          - S3
+          - S4
+          - S7
+        window:
+          words_per_window: 2000
+          calibration_fraction: 0.1
+          vocab_fraction: 0.05
+          reference_fraction: 0.05
+    outs:
+    - path: results/calibration.json
+      hash: md5
+      md5: 6b2df2b72d0791d9fb82c0699f232140
+      size: 47958
+    - path: results/detection_metrics.json
+      hash: md5
+      md5: ef55efdc72ac55f4224cdae0c9ed48b0
+      size: 75719

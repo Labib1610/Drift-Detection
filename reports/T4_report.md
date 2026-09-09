@@ -1,6 +1,6 @@
 # TASK 4 — Calibration fix, signal variants, dilution decomposition
 
-- Mode: FULL · wall-clock 388.9s
+- Mode: FULL · wall-clock 379.9s
 - Reproduce: `python src/streams.py --params params.yaml && python src/fertility.py --params params.yaml`
 
 ## Part 1 — split-epoch calibration

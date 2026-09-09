@@ -1,6 +1,6 @@
 # TASK 5 — Detection, FAR calibration, redundancy test
 
-- Mode: FULL · wall-clock 29.2s · null streams: perms 01-10
+- Mode: FULL · wall-clock 29.6s · null streams: perms 01-10
 - Reproduce: `python src/detect.py --params params.yaml`
 
 **Anti-leakage:** every `delta*` is chosen using only the shuffled null streams (perms 01-10). The real stream (perm 00) is touched only *after* delta* is frozen in `results/calibration.json`. delta* never sees real-stream data.
@@ -43,22 +43,22 @@ Covariate most consistently associated with z(S1) across tokenizers: **mean_word
 
 ## Part 3 — FAR-calibrated ADWIN detection
 
-Target FAR = 0.001 (1 per 1,000 windows). delta grid 1e-06..0.5 (13 points). Ground truth t* = 2020-03-08 (Bangladesh first COVID-19 cases).
+Target FAR = 0.001 (1 per 1,000 windows). delta grid 1e-06..0.99 (14 points). Ground truth t* = 2020-03-08 (Bangladesh first COVID-19 cases).
 
 For each signal, the **best tokenizer** (earliest valid detection, else most alarms) at target FAR 0.001, raw variant:
 
 | signal | tokenizer | delta* | FAR achieved | alarmed? | delay from t* (days) | pre-t* alarms | near t*±60d |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| S1 | xlm-roberta-base | 0.5 | 4.17e-04 | yes | 12 | 16 | yes |
-| S1c | bloom-560m | 0.5 | 5.56e-04 | yes | 12 | 18 | yes |
-| S3 | xlm-roberta-base | 0.5 | 4.17e-04 | yes | 12 | 18 | yes |
-| S4 | (shared) | 0.5 | 6.34e-04 | yes | 7 | 9 | yes |
-| S7 | Llama-3.2-1B | 0.5 | 6.43e-04 | yes | 4 | 18 | yes |
+| S1 | bloom-560m | 0.95 | 9.39e-04 | yes | 12 | 26 | yes |
+| S1c | xlm-roberta-base | 0.7 | 7.74e-04 | yes | 4 | 18 | yes |
+| S3 | xlm-roberta-base | 0.95 | 9.91e-04 | yes | 4 | 27 | yes |
+| S4 | (shared) | 0.7 | 9.04e-04 | yes | 7 | 17 | yes |
+| S7 | Qwen2.5-0.5B | 0.7 | 8.52e-04 | yes | 4 | 20 | yes |
 
 ### Raw vs residualized (n_words regressed out on reference epoch)
 
-- S1c/bert-base-multilingual-cased: raw(alarm=True,delay=251) vs resid(alarm=True,delay=241)
-- S1c/xlm-roberta-base: raw(alarm=True,delay=12) vs resid(alarm=True,delay=7)
+- S1c/bert-base-multilingual-cased: raw(alarm=True,delay=246) vs resid(alarm=True,delay=230)
+- S3/bert-base-multilingual-cased: raw(alarm=True,delay=64) vs resid(alarm=True,delay=59)
 - S3/Llama-3.2-1B: raw(alarm=True,delay=68) vs resid(alarm=True,delay=64)
 - S3/Qwen2.5-0.5B: raw(alarm=True,delay=64) vs resid(alarm=True,delay=50)
 
@@ -66,9 +66,9 @@ For each signal, the **best tokenizer** (earliest valid detection, else most ala
 
 | signal | delay@0.001 | delay@0.01 | delay@0.0001 |
 | --- | --- | --- | --- |
-| S1 | 12 | 12 | 46 |
-| S1c | 12 | 12 | 41 |
-| S3 | 12 | 12 | 41 |
+| S1 | 12 | 4 | 46 |
+| S1c | 4 | 4 | 12 |
+| S3 | 4 | 4 | 41 |
 | S4 | 7 | 7 | 24 |
 | S7 | 4 | 4 | 7 |
 
@@ -97,16 +97,16 @@ THE SIGN ANOMALY:
 
 THE DETECTION RESULT — at target FAR 0.001, per signal (best tokenizer named):
     signal | tokenizer | delta* | FAR | alarmed | delay(days) | pre-t*
-    S1   | xlm-roberta-base | 0.5 | 4.2e-04 | True | 12 | 16
-    S1c  | bloom-560m | 0.5 | 5.6e-04 | True | 12 | 18
-    S3   | xlm-roberta-base | 0.5 | 4.2e-04 | True | 12 | 18
-    S4   | (shared) | 0.5 | 6.3e-04 | True | 7 | 9
-    S7   | Llama-3.2-1B | 0.5 | 6.4e-04 | True | 4 | 18
+    S1   | bloom-560m | 0.95 | 9.4e-04 | True | 12 | 26
+    S1c  | xlm-roberta-base | 0.7 | 7.7e-04 | True | 4 | 18
+    S3   | xlm-roberta-base | 0.95 | 9.9e-04 | True | 4 | 27
+    S4   | (shared) | 0.7 | 9.0e-04 | True | 7 | 17
+    S7   | Qwen2.5-0.5B | 0.7 | 8.5e-04 | True | 4 | 20
 
 FAR SENSITIVITY — best detection delay per signal at 1e-2 / 1e-3 / 1e-4:
-    S1: 0.001:12, 0.01:12, 0.0001:46
-    S1c: 0.001:12, 0.01:12, 0.0001:41
-    S3: 0.001:12, 0.01:12, 0.0001:41
+    S1: 0.001:12, 0.01:4, 0.0001:46
+    S1c: 0.001:4, 0.01:4, 0.0001:12
+    S3: 0.001:4, 0.01:4, 0.0001:41
     S4: 0.001:7, 0.01:7, 0.0001:24
     S7: 0.001:4, 0.01:4, 0.0001:7
 

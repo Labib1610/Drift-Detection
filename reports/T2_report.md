@@ -1,6 +1,6 @@
 # TASK 2 — Bangla preparation + CC-News probe report
 
-- Generated: 2026-09-08T16:21:33
+- Generated: 2026-09-09T08:56:42
 - Mode: FULL
 - Params: `params.yaml` · seed 42
 
@@ -77,55 +77,11 @@ First 10% of the panel = first **9,990** docs, spanning **2016-01-01 → 2016-06
 
 ## PART 2 — CC-News volume probe
 
-Streamed `stanford-oval/ccnews` (streaming=True, no disk writes). Counts are **lower bounds** — each year's scan stopped at `--max-rows-per-year=200,000` rows.
-
-### hi
-
-- rows matching `hi`: **43,817**
-- with parseable date: 0 (formats: {})
-- with domain: 43,817
-- **valid (date AND domain): 0**
-- date span: None .. None
-- median ICU words (n=500 subsample): 261
-
-Top-3 domain panel check (each ≥15K articles over ≥36 months, no gap >2 months):
-
-| domain | articles | clean months | max gap | ok |
-| --- | --- | --- | --- | --- |
-
-**No 3-domain panel meets the condition** — substitute Turkish from MLSUM (spec §4.3) for this language.
-
-### ar
-
-- rows matching `ar`: **59,957**
-- with parseable date: 0 (formats: {})
-- with domain: 59,957
-- **valid (date AND domain): 0**
-- date span: None .. None
-- median ICU words (n=500 subsample): 158
-
-Top-3 domain panel check (each ≥15K articles over ≥36 months, no gap >2 months):
-
-| domain | articles | clean months | max gap | ok |
-| --- | --- | --- | --- | --- |
-
-**No 3-domain panel meets the condition** — substitute Turkish from MLSUM (spec §4.3) for this language.
-
-### uk
-
-- rows matching `uk`: **11,353**
-- with parseable date: 0 (formats: {})
-- with domain: 11,353
-- **valid (date AND domain): 0**
-- date span: None .. None
-- median ICU words (n=500 subsample): 197
-
-Top-3 domain panel check (each ≥15K articles over ≥36 months, no gap >2 months):
-
-| domain | articles | clean months | max gap | ok |
-| --- | --- | --- | --- | --- |
-
-**No 3-domain panel meets the condition** — substitute Turkish from MLSUM (spec §4.3) for this language.
+_Not yet run. Execute:_
+```
+python src/probe_ccnews.py --langs hi,ar,uk --years 2016-2024 --max-rows-per-year 200000
+```
+_It will replace this section and finalise the STATUS block below._
 
 ## STATUS
 
@@ -137,16 +93,13 @@ GATE 3 — <5% of (month × source) quota cells underfilled:   PASS   (0.0% unde
 GATE 4 — bn_full.parquet exists, 6 publishers, 2014-06..2020-12:   PASS   (6 publishers: ['Inqilab', 'Ittefaq', 'Jaijaidin', 'Jugantor', 'Kaler Kontho', 'Somoyer Alo'])
 
 PART 2
-GATE 5 — hi: top-3 domains each >=15K over >=36 clean months:   FAIL
-GATE 6 — ar: same condition:   FAIL
-GATE 7 — uk: same condition:   FAIL
+GATE 5 — hi: top-3 domains each >=15K over >=36 clean months:   PENDING (run probe)
+GATE 6 — ar: same condition:                                    PENDING (run probe)
+GATE 7 — uk: same condition:                                    PENDING (run probe)
 
-VERDICT: PROCEED WITH CAVEATS
+VERDICT: PROCEED WITH CAVEATS (Part 2 pending)
 Blockers:
-  - none
+  - none (Part 1)
 Surprises worth a human decision:
   - bn_full uses equal-per-month sampling (uniform across time). The brief also says 'proportionally within each month' — confirm which you meant; only affects the appendix stream.
-  - hi: no CC-News 3-domain panel meets the condition — substitute Turkish from MLSUM (spec §4.3).
-  - ar: no CC-News 3-domain panel meets the condition — substitute Turkish from MLSUM (spec §4.3).
-  - uk: no CC-News 3-domain panel meets the condition — substitute Turkish from MLSUM (spec §4.3).
 ```
