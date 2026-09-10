@@ -1,6 +1,6 @@
 # TASK 3 — Fertility signals (S1-S4) report
 
-- Mode: FULL · wall-clock 379.8s
+- Mode: FULL · wall-clock 397.9s
 - Reproduce:
 ```
 python src/streams.py --params params.yaml
@@ -182,27 +182,27 @@ If S1 rises but S1b does not, late-period drift is compositional (topic mix); if
 
 | stage | seconds |
 | --- | --- |
-| load bert-base-multilingual-cased | 2.7 |
-| load xlm-roberta-base | 3.3 |
-| load meta-llama_Llama-3.2-1B | 1.9 |
-| load Qwen_Qwen2.5-0.5B | 1.6 |
-| load bigscience_bloom-560m | 2.5 |
-| bn_panel: ICU types | 10.1 |
-| bn_panel: tokenize bert-base-multilingual-cased | 19.2 |
-| bn_panel: tokenize xlm-roberta-base | 17.7 |
-| bn_panel: tokenize meta-llama_Llama-3.2-1B | 36.4 |
-| bn_panel: tokenize Qwen_Qwen2.5-0.5B | 37.9 |
-| bn_panel: tokenize bigscience_bloom-560m | 18.1 |
-| bn_panel: type-fertility | 24.2 |
-| bn_panel: total | 215.7 |
-| bn_full: ICU types | 8.4 |
-| bn_full: tokenize bert-base-multilingual-cased | 18.5 |
-| bn_full: tokenize xlm-roberta-base | 18.1 |
-| bn_full: tokenize meta-llama_Llama-3.2-1B | 31.3 |
-| bn_full: tokenize Qwen_Qwen2.5-0.5B | 31.7 |
-| bn_full: tokenize bigscience_bloom-560m | 15.4 |
-| bn_full: type-fertility | 22.5 |
-| bn_full: total | 150.7 |
+| load bert-base-multilingual-cased | 2.5 |
+| load xlm-roberta-base | 3.4 |
+| load meta-llama_Llama-3.2-1B | 2.0 |
+| load Qwen_Qwen2.5-0.5B | 1.7 |
+| load bigscience_bloom-560m | 2.6 |
+| bn_panel: ICU types | 10.2 |
+| bn_panel: tokenize bert-base-multilingual-cased | 19.1 |
+| bn_panel: tokenize xlm-roberta-base | 18.0 |
+| bn_panel: tokenize meta-llama_Llama-3.2-1B | 36.6 |
+| bn_panel: tokenize Qwen_Qwen2.5-0.5B | 38.4 |
+| bn_panel: tokenize bigscience_bloom-560m | 18.3 |
+| bn_panel: type-fertility | 32.4 |
+| bn_panel: total | 224.8 |
+| bn_full: ICU types | 8.7 |
+| bn_full: tokenize bert-base-multilingual-cased | 18.8 |
+| bn_full: tokenize xlm-roberta-base | 18.3 |
+| bn_full: tokenize meta-llama_Llama-3.2-1B | 31.6 |
+| bn_full: tokenize Qwen_Qwen2.5-0.5B | 32.1 |
+| bn_full: tokenize bigscience_bloom-560m | 15.7 |
+| bn_full: type-fertility | 29.7 |
+| bn_full: total | 159.8 |
 
 ## STATUS
 

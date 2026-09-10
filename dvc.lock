@@ -113,8 +113,8 @@ stages:
       nfiles: 61
     - path: src/detect.py
       hash: md5
-      md5: 2be06734e659868dc207667428c58b1b
-      size: 66811
+      md5: bf99f0c7ea638855433f0e047105d938
+      size: 88868
     params:
       params.yaml:
         detect:
@@ -140,3 +140,62 @@ stages:
       hash: md5
       md5: ef55efdc72ac55f4224cdae0c9ed48b0
       size: 75719
+  classify:
+    cmd: python src/classifier.py --params params.yaml
+    deps:
+    - path: data/interim
+      hash: md5
+      md5: 60504bce6c528011f85345c338f75015.dir
+      size: 217164296
+      nfiles: 2
+    - path: features/windows
+      hash: md5
+      md5: 6e288bb0ce8c9d409152ef174132b0f4.dir
+      size: 134848740
+      nfiles: 61
+    - path: src/classifier.py
+      hash: md5
+      md5: 7e65e5baa1aae2c8d33a072ee0ae20d4
+      size: 10344
+    params:
+      params.yaml:
+        classifier:
+          n_features: 262144
+          learning_rate: 0.5
+          targets:
+          - publisher
+          - topic
+    outs:
+    - path: features/classifier
+      hash: md5
+      md5: caff2cc8752e47180aacabfe95f853f7.dir
+      size: 4536802
+      nfiles: 34
+  embed:
+    cmd: python src/embeddings.py --params params.yaml
+    deps:
+    - path: data/interim
+      hash: md5
+      md5: 60504bce6c528011f85345c338f75015.dir
+      size: 217164296
+      nfiles: 2
+    - path: src/embeddings.py
+      hash: md5
+      md5: 34ab33219325e58ef0dbf5fc6dbb6ed7
+      size: 8122
+    params:
+      params.yaml:
+        embeddings:
+          model: sentence-transformers/LaBSE
+          max_seq_length: 256
+          batch_size: 64
+          ref_pool_size: 2000
+          max_docs_per_window: 200
+          encode_budget_min: 60
+          subsample_docs: 40000
+    outs:
+    - path: features/embeddings
+      hash: md5
+      md5: c304b3d3dbc4f7ab4d302c508f30e233.dir
+      size: 156989646
+      nfiles: 12

@@ -32,3 +32,35 @@ stages:
     - seed
     outs:
     - data/interim
+  detect:
+    cmd: python src/detect.py --params params.yaml
+    deps:
+    - features/windows
+    - src/detect.py
+    params:
+    - detect
+    - window
+    outs:
+    - results/calibration.json
+    metrics:
+    - results/detection_metrics.json:
+        cache: false
+  classify:
+    cmd: python src/classifier.py --params params.yaml
+    deps:
+    - data/interim
+    - features/windows
+    - src/classifier.py
+    params:
+    - classifier
+    outs:
+    - features/classifier
+  embed:
+    cmd: python src/embeddings.py --params params.yaml
+    deps:
+    - data/interim
+    - src/embeddings.py
+    params:
+    - embeddings
+    outs:
+    - features/embeddings

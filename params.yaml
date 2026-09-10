@@ -41,6 +41,20 @@ detect:
   covid_window_days: 60
   signals: [S1, S1c, S3, S4, S7]
 
+classifier:                    # T6 Part 3 — supervised reference detector S6
+  n_features: 262144           # 2^18 hashed bag-of-words buckets
+  learning_rate: 0.5
+  targets: [publisher, topic]
+
+embeddings:                    # T6 Part 4 — MMD embedding baseline S5
+  model: sentence-transformers/LaBSE
+  max_seq_length: 256
+  batch_size: 64
+  ref_pool_size: 2000
+  max_docs_per_window: 200
+  encode_budget_min: 60
+  subsample_docs: 40000        # budget guard: stratified-by-month fallback
+
 synthetic:                     # T5b Problem 3a — semi-synthetic drift injection
   intensities: [0.05, 0.10, 0.25, 0.50, 1.00]
   replicates: 20

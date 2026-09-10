@@ -1,6 +1,6 @@
 # TASK 2 — Bangla preparation + CC-News probe report
 
-- Generated: 2026-09-09T08:56:42
+- Generated: 2026-09-11T01:59:19
 - Mode: FULL
 - Params: `params.yaml` · seed 42
 
