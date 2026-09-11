@@ -113,8 +113,8 @@ stages:
       nfiles: 61
     - path: src/detect.py
       hash: md5
-      md5: bf99f0c7ea638855433f0e047105d938
-      size: 88868
+      md5: 1dc06aa56a0d56d73fa4e0808bf5f4e6
+      size: 132060
     params:
       params.yaml:
         detect:
