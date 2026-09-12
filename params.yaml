@@ -66,14 +66,16 @@ synthetic:                     # T5b Problem 3a — semi-synthetic drift injecti
   seed: 42
 
 # T5b Problem 3b — real changepoints, each date verified against a cited source.
+# T9 seeds: event-specific terms, substring-matched against ICU word types (catches
+# Bangla case-inflected forms). Multi-word seeds are matched word-by-word.
 changepoints:
-  - {name: rohingya_influx,      date: "2017-08-25", source: "Crisis Group / CFR — ARSA attacks 25 Aug 2017 triggered exodus"}
-  - {name: khaleda_zia_jailed,   date: "2018-02-08", source: "The Daily Star / Business Standard — sentenced 8 Feb 2018"}
-  - {name: road_safety_protests, date: "2018-07-29", source: "Wikipedia / TIME / NPR — bus killed 2 students 29 Jul 2018"}
-  - {name: parliamentary_election, date: "2018-12-30", source: "IPU Parline / APF Canada — 11th election 30 Dec 2018"}
-  - {name: nusrat_rafi_murder,   date: "2019-04-10", source: "HRW / CBS — attacked 6 Apr, died 10 Apr 2019"}
-  - {name: abrar_fahad_killing,  date: "2019-10-07", source: "Wikipedia / The Daily Star — killed night 6-7 Oct 2019"}
-  - {name: covid_first_cases,    date: "2020-03-08", source: "IEDCR / Frontiers Public Health — first 3 cases 8 Mar 2020"}
+  - {name: rohingya_influx,      date: "2017-08-25", source: "Crisis Group / CFR — ARSA attacks 25 Aug 2017 triggered exodus", seeds: [রোহিঙ্গা, রাখাইন, আরাকান, শরণার্থী]}
+  - {name: khaleda_zia_jailed,   date: "2018-02-08", source: "The Daily Star / Business Standard — sentenced 8 Feb 2018", seeds: [খালেদা, জিয়া, এতিমখানা, কারাগারে]}
+  - {name: road_safety_protests, date: "2018-07-29", source: "Wikipedia / TIME / NPR — bus killed 2 students 29 Jul 2018", seeds: [নিরাপদ, সড়ক, বাসচাপায়, শিক্ষার্থীদের, আন্দোলন, জাবালে, নূর]}
+  - {name: parliamentary_election, date: "2018-12-30", source: "IPU Parline / APF Canada — 11th election 30 Dec 2018", seeds: [নির্বাচন, ভোট, একাদশ, সংসদ, ইভিএম]}
+  - {name: nusrat_rafi_murder,   date: "2019-04-10", source: "HRW / CBS — attacked 6 Apr, died 10 Apr 2019", seeds: [নুসরাত, ফেনী, মাদ্রাসা, সোনাগাজী]}
+  - {name: abrar_fahad_killing,  date: "2019-10-07", source: "Wikipedia / The Daily Star — killed night 6-7 Oct 2019", seeds: [আবরার, বুয়েট, ফাহাদ, ছাত্রলীগ]}
+  - {name: covid_first_cases,    date: "2020-03-08", source: "IEDCR / Frontiers Public Health — first 3 cases 8 Mar 2020", seeds: [করোনা, কোভিড, লকডাউন, কোয়ারেন্টিন]}
 
 ccnews:
   repo: stanford-oval/ccnews
