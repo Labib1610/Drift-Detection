@@ -1,0 +1,63 @@
+PART 3: FAR calibration on null streams ...
+  S1|bert-base-multilingual-cased|raw: delta*(1e-3)=0.7 far=0.0007995967251299345
+  S1|bert-base-multilingual-cased|resid: delta*(1e-3)=0.7 far=0.0008430530688869961
+  S1|xlm-roberta-base|raw: delta*(1e-3)=0.9 far=0.0009386570251525317
+  S1|xlm-roberta-base|resid: delta*(1e-3)=0.9 far=0.0008865094126440578
+  S1|meta-llama/Llama-3.2-1B|raw: delta*(1e-3)=0.5 far=0.0007039927688643989
+  S1|meta-llama/Llama-3.2-1B|resid: delta*(1e-3)=0.5 far=0.0006953015001129865
+  S1|Qwen/Qwen2.5-0.5B|raw: delta*(1e-3)=0.5 far=0.0007300665751186358
+  S1|Qwen/Qwen2.5-0.5B|resid: delta*(1e-3)=0.5 far=0.0007300665751186358
+  S1|bigscience/bloom-560m|raw: delta*(1e-3)=0.95 far=0.0009386570251525317
+  S1|bigscience/bloom-560m|resid: delta*(1e-3)=0.95 far=0.0009647308314067687
+  S1c|bert-base-multilingual-cased|raw: delta*(1e-3)=0.7 far=0.0009125832188982948
+  S1c|bert-base-multilingual-cased|resid: delta*(1e-3)=0.7 far=0.0008691268751412331
+  S1c|xlm-roberta-base|raw: delta*(1e-3)=0.7 far=0.0007735229188756974
+  S1c|xlm-roberta-base|resid: delta*(1e-3)=0.7 far=0.0008082879938813468
+  S1c|meta-llama/Llama-3.2-1B|raw: delta*(1e-3)=0.5 far=0.0008082879938813468
+  S1c|meta-llama/Llama-3.2-1B|resid: delta*(1e-3)=0.5 far=0.0008430530688869961
+  S1c|Qwen/Qwen2.5-0.5B|raw: delta*(1e-3)=0.7 far=0.0009908046376610057
+  S1c|Qwen/Qwen2.5-0.5B|resid: delta*(1e-3)=0.7 far=0.0009734221001581811
+  S1c|bigscience/bloom-560m|raw: delta*(1e-3)=0.9 far=0.0009647308314067687
+  S1c|bigscience/bloom-560m|resid: delta*(1e-3)=0.9 far=0.0009560395626553564
+  S3|bert-base-multilingual-cased|raw: delta*(1e-3)=0.7 far=0.0008865094126440578
+  S3|bert-base-multilingual-cased|resid: delta*(1e-3)=0.7 far=0.0008865094126440578
+  S3|xlm-roberta-base|raw: delta*(1e-3)=0.95 far=0.0009908046376610057
+  S3|xlm-roberta-base|resid: delta*(1e-3)=0.9 far=0.0009299657564011194
+  S3|meta-llama/Llama-3.2-1B|raw: delta*(1e-3)=0.3 far=0.0008256705313841715
+  S3|meta-llama/Llama-3.2-1B|resid: delta*(1e-3)=0.5 far=0.0009821133689095934
+  S3|Qwen/Qwen2.5-0.5B|raw: delta*(1e-3)=0.3 far=0.0007909054563785222
+  S3|Qwen/Qwen2.5-0.5B|resid: delta*(1e-3)=0.5 far=0.0009908046376610057
+  S3|bigscience/bloom-560m|raw: delta*(1e-3)=0.99 far=0.0009734221001581811
+  S3|bigscience/bloom-560m|resid: delta*(1e-3)=0.95 far=0.0009560395626553564
+  S4|shared|raw: delta*(1e-3)=0.7 far=0.0009038919501468825
+  S4|shared|resid: delta*(1e-3)=0.7 far=0.0009038919501468825
+  S7|bert-base-multilingual-cased|raw: delta*(1e-3)=0.7 far=0.0008952006813954701
+  S7|bert-base-multilingual-cased|resid: delta*(1e-3)=0.7 far=0.0008865094126440578
+  S7|xlm-roberta-base|raw: delta*(1e-3)=0.7 far=0.0008343618001355838
+  S7|xlm-roberta-base|resid: delta*(1e-3)=0.7 far=0.0008691268751412331
+  S7|meta-llama/Llama-3.2-1B|raw: delta*(1e-3)=0.7 far=0.0008430530688869961
+  S7|meta-llama/Llama-3.2-1B|resid: delta*(1e-3)=0.7 far=0.0008430530688869961
+  S7|Qwen/Qwen2.5-0.5B|raw: delta*(1e-3)=0.7 far=0.0008517443376384084
+  S7|Qwen/Qwen2.5-0.5B|resid: delta*(1e-3)=0.7 far=0.0008169792626327591
+  S7|bigscience/bloom-560m|raw: delta*(1e-3)=0.7 far=0.0008256705313841715
+  S7|bigscience/bloom-560m|resid: delta*(1e-3)=0.7 far=0.0007909054563785222
+PART 3: detection on the real stream ...
+PART 1: redundancy test ...
+PART 2: sign-anomaly covariates (ICU pass) ...
+T5 report written. Wall-clock 30.5s
+T5b: extended-grid audit + paired comparison ...
+T5b: 5x5 delay grid + Wilcoxon ...
+T5b: building document-level features (ICU pass) ...
+T5b: synthetic sweep 5 intensities x 20 replicates ...
+  p=0.05: power S1=0.55, S1c=0.64, S3=0.54, S4=0.45, S7=0.53
+  p=0.1: power S1=0.63, S1c=0.58, S3=0.62, S4=0.50, S7=0.48
+  p=0.25: power S1=0.67, S1c=0.65, S3=0.71, S4=0.75, S7=0.83
+  p=0.5: power S1=0.60, S1c=0.68, S3=0.76, S4=0.85, S7=0.96
+  p=1.0: power S1=0.72, S1c=0.80, S3=0.89, S4=1.00, S7=1.00
+T5b: real changepoints ...
+T5b: covariate trends ...
+T5b report written to reports/T5b_report.md. Total wall-clock 94.5s
+T6: p=0 control arm ...
+T6: decile decomposition ...
+T6: lead time over S6 ...
+T6 report written to reports/T6_report.md. Total wall-clock 104.7s
