@@ -1,0 +1,6 @@
+outs:
+- md5: 6aa50e58df4dc99e4d2e046f4b800c1d.dir
+  size: 720315229
+  nfiles: 2
+  hash: md5
+  path: NewsSumm
