@@ -8,11 +8,15 @@ bandwidth is the median-heuristic value computed ONCE on the reference pool and 
 (recomputing per window would leak future information). S5 = MMD², z-scored with the
 split-epoch protocol and ADWIN-calibrated on the 10 shuffled null streams.
 
+The stream is {lang}_panel. Non-bn languages write tagged artifacts (suffix _{lang})
+so bn files are never overwritten. The embedding cache is already per-stream.
+
 Deterministic: encoding order is the parquet doc order; the reference pool sample and
 all seeds are fixed.
 
 Usage:
     python src/embeddings.py --params params.yaml
+    python src/embeddings.py --lang ns --params params.yaml
     python src/embeddings.py --demo
 """
 
@@ -32,7 +36,6 @@ from detect import far_curve, pick_delta, epoch_bounds  # noqa
 
 EMB_DIR = "features/embeddings"
 RES_DIR = "results"
-STREAM = "bn_panel"
 
 
 def log(m):
@@ -70,10 +73,16 @@ def rbf_mmd2(X, Y, gamma, kyy_mean):
 
 def main():
     ap = argparse.ArgumentParser(description="TASK 6 Part 4 — MMD embedding baseline")
+    ap.add_argument("--lang", default="bn")
     ap.add_argument("--params", default="params.yaml")
     ap.add_argument("--demo", action="store_true")
     args = ap.parse_args()
     t0 = time.time()
+
+    lang = args.lang
+    STREAM = f"{lang}_panel"
+    tag = "" if lang == "bn" else f"_{lang}"
+
     P = yaml.safe_load(open(args.params))
     E = P["embeddings"]
     vf = P["window"]["vocab_fraction"]; rf = P["window"]["reference_fraction"]
@@ -84,8 +93,13 @@ def main():
     os.makedirs(EMB_DIR, exist_ok=True)
     os.makedirs(RES_DIR, exist_ok=True)
 
-    df = pd.read_parquet(f"data/interim/{STREAM}.parquet",
-                         columns=["doc_id", "text", "date", "n_words"])
+    parquet = f"data/interim/{STREAM}.parquet"
+    if not os.path.exists(parquet):
+        log(f"[embeddings] ERROR: {parquet} not found — run prepare.py --lang {lang} "
+            "with panel_publishers configured first.")
+        return 2
+
+    df = pd.read_parquet(parquet, columns=["doc_id", "text", "date", "n_words"])
     if demo:
         df = df.head(6000).reset_index(drop=True)
     n = len(df)
@@ -105,9 +119,9 @@ def main():
                    "Install for the RTX 5060 Ti (Blackwell, needs CUDA 12.8+):\n"
                    "  pip install torch --index-url https://download.pytorch.org/whl/cu128\n"
                    "  pip install sentence-transformers\n"
-                   "then re-run: python src/embeddings.py --params params.yaml")
+                   f"then re-run: python src/embeddings.py --lang {lang} --params params.yaml")
             log("[embeddings] BLOCKED: " + msg)
-            with open(f"{RES_DIR}/embeddings_status.json", "w") as fh:
+            with open(f"{RES_DIR}/embeddings_status{tag}.json", "w") as fh:
                 json.dump({"status": "blocked", "reason": msg}, fh, indent=2)
             return 0
         dev = "cuda" if torch.cuda.is_available() else "cpu"
@@ -168,7 +182,7 @@ def main():
         z = zscore_split(s5, nv, nre)
         out = pd.DataFrame({"window_idx": np.arange(nwin, dtype=np.int32),
                             "median_date": pd.to_datetime(md), "S5": s5, "z_S5": z})
-        out.to_parquet(f"{EMB_DIR}/s5__perm{k:02d}{'_demo' if demo else ''}.parquet", index=False)
+        out.to_parquet(f"{EMB_DIR}/s5{tag}__perm{k:02d}{'_demo' if demo else ''}.parquet", index=False)
         if k != 0:
             zz = z[nre:]; calib_nulls.append(zz[~np.isnan(zz)])
     curve, tot = far_curve(calib_nulls, grid)
@@ -177,12 +191,12 @@ def main():
         d = pick_delta(curve, tf)
         picks[f"{tf:g}"] = {"delta": (float(d) if d is not None else None),
                             "far": (float(curve[d]) if d is not None else None)}
-    with open(f"{RES_DIR}/embeddings_calibration.json", "w") as fh:
+    with open(f"{RES_DIR}/embeddings_calibration{tag}.json", "w") as fh:
         json.dump({"grid": grid, "far_targets": far_targets,
                    "S5": {"far_curve": {f"{g:g}": float(curve[g]) for g in grid},
                           "targets": picks, "gamma": float(gamma), "median_dist": float(med),
                           "ref_pool_size": int(pool_n), "null_windows": int(tot)}}, fh, indent=2)
-    with open(f"{RES_DIR}/embeddings_status.json", "w") as fh:
+    with open(f"{RES_DIR}/embeddings_status{tag}.json", "w") as fh:
         json.dump({"status": "ok", "n_docs": int(n), "gamma": float(gamma)}, fh, indent=2)
     log(f"[embeddings] done. delta*(1e-3)={picks[f'{float(P['adwin']['target_far']):g}']['delta']}. "
         f"Wall-clock {time.time()-t0:.0f}s")

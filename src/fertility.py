@@ -16,8 +16,18 @@ z-score them against each stream's own first-10% calibration epoch.
 
 No ADWIN, no calibration sweep, no classifier — those are T4-T6.
 
+Streams are derived from --lang: {lang}_panel (with null permutations) and
+{lang}_full (perm 00 only). A stream is used only if its parquet exists in
+data/interim/. The headline stream (tables, figures, type-fertility files) is
+{lang}_panel when it exists, otherwise {lang}_full.
+
+Optional per-language setting in params.yaml:
+    <lang>:
+      fertility_range: [1.0, 12.0]   # GATE 4 bounds on raw mean fertility
+
 Usage:
-    python src/fertility.py --params params.yaml --report reports/T3_report.md
+    python src/fertility.py --params params.yaml --report reports/T4_report.md
+    python src/fertility.py --lang ns --params params.yaml
     python src/fertility.py --demo        # tiny subsample, <60s
 """
 
@@ -59,6 +69,12 @@ def log(msg: str) -> None:
 
 def slug(name: str) -> str:
     return name.replace("/", "_")
+
+
+def lang_tag(lang: str) -> str:
+    """Filename tag for language-independent artifacts (type-fertility tables,
+    z-score params, figures). Empty for bn so existing filenames are unchanged."""
+    return "" if lang == "bn" else f"_{lang}"
 
 
 # ---------------------------------------------------------------------------
@@ -256,10 +272,16 @@ def pctl(a, q):
 # ---------------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser(description="TASK 3 Part 2 — fertility signals")
+    ap.add_argument("--lang", default="bn")
     ap.add_argument("--params", default="params.yaml")
     ap.add_argument("--report", default="reports/T4_report.md")
     ap.add_argument("--demo", action="store_true")
     args = ap.parse_args()
+
+    lang = args.lang
+    PANEL = f"{lang}_panel"
+    FULL = f"{lang}_full"
+    tag = lang_tag(lang)
 
     t_start = time.time()
     with open(args.params) as fh:
@@ -272,6 +294,7 @@ def main():
     vocab_frac = P["window"]["vocab_fraction"]
     ref_frac = P["window"]["reference_fraction"]
     num_shuffles = P["streams"]["num_shuffles"]
+    fert_range = tuple(P.get(lang, {}).get("fertility_range", [1.5, 12.0]))
 
     demo = args.demo
     feat_dir = "features/fertility"
@@ -280,8 +303,20 @@ def main():
     type_dir = "features/type_fertility"
     for d in (feat_dir, win_dir, fig_dir, type_dir):
         os.makedirs(d, exist_ok=True)
-    t3_path = "reports/T3_report_demo.md" if demo else "reports/T3_report.md"
-    t4_path = "reports/T4_report_demo.md" if demo else args.report
+
+    # Report filenames: bare names for bn (unchanged); language-tagged otherwise.
+    if lang == "bn":
+        t3_path = "reports/T3_report_demo.md" if demo else "reports/T3_report.md"
+        t4_path = "reports/T4_report_demo.md" if demo else args.report
+    else:
+        t3_path = (f"reports/T3_{lang}_report_demo.md" if demo
+                   else f"reports/T3_{lang}_report.md")
+        if demo:
+            t4_path = f"reports/T4_{lang}_report_demo.md"
+        elif args.report == "reports/T4_report.md":   # untouched default
+            t4_path = f"reports/T4_{lang}_report.md"
+        else:
+            t4_path = args.report
 
     timings = OrderedDict()
     tok_info = OrderedDict()      # name -> dict of family/marker/pieces/substituted
@@ -296,6 +331,24 @@ def main():
     s8_null = {}                  # (stream,name) -> #windows with S8 null (perm00)
     sigma_s4 = {}                 # (stream,name) -> sigma_ref(S4) on perm00
     ref_dates = {}                # stream -> "YYYY-MM-DD .. YYYY-MM-DD" reference epoch
+
+    # ---- streams: only those whose parquet exists --------------------------
+    candidates = [(PANEL, num_shuffles if not demo else 2), (FULL, 0)]
+    streams = []
+    for s, k in candidates:
+        if os.path.exists(f"data/interim/{s}.parquet"):
+            streams.append((s, k))
+        else:
+            log(f"SKIP {s}: data/interim/{s}.parquet not found")
+    if not streams:
+        log(f"ERROR: neither {PANEL} nor {FULL} found in data/interim/ — "
+            f"run prepare.py --lang {lang} first.")
+        return 2
+    # Stream that drives the headline tables/figures and per-tokenizer type tables.
+    # Equals PANEL whenever a panel exists (always the case for bn).
+    HEADLINE = PANEL if PANEL in [s for s, _ in streams] else FULL
+    if HEADLINE != PANEL:
+        log(f"NOTE: no {PANEL}; headline reports/figures use {HEADLINE}.")
 
     # ---- load tokenizers once ---------------------------------------------
     loaded = OrderedDict()
@@ -327,14 +380,9 @@ def main():
         timings[f"load {slug(name)}"] = time.time() - t0
 
     gate1_ok = True  # per-doc counts exist, nulls only where expected
-    streams = [("bn_panel", num_shuffles if not demo else 2),
-               ("bn_full", 0)]  # bn_full: perm 00 only
 
     for stream, n_extra_perms in streams:
         parquet = f"data/interim/{stream}.parquet"
-        if not os.path.exists(parquet):
-            log(f"SKIP {stream}: missing {parquet}")
-            continue
         t_stream = time.time()
         df = pd.read_parquet(parquet, columns=["doc_id", "text", "date", "topic", "n_words"])
         df["date"] = pd.to_datetime(df["date"])
@@ -417,11 +465,11 @@ def main():
         for name, L in loaded.items():
             tp = build_type_fertility(L["tok"], id_to_type)
             type_pieces[name] = tp
-            if stream == "bn_panel":
+            if stream == HEADLINE:
                 sfx = "_demo" if demo else ""
                 pd.DataFrame({"type": id_to_type,
                               "n_pieces": tp.astype(np.int32)}).to_parquet(
-                    f"{type_dir}/{slug(name)}{sfx}.parquet", index=False,
+                    f"{type_dir}/{slug(name)}{tag}{sfx}.parquet", index=False,
                     compression="zstd")
             # empirical word-initial check: bare vs spaced pieces for one long type
             ex_id = int(max(range(len(id_to_type)), key=lambda i: len(id_to_type[i])))
@@ -597,34 +645,35 @@ def main():
                 out.to_parquet(
                     f"{win_dir}/{stream}__{slug(name)}__perm{pk:02d}{suffix}.parquet",
                     index=False, compression="zstd")
-                if stream == "bn_panel" and pk == 0:
+                if stream == HEADLINE and pk == 0:
                     panel_perm0[name] = out
 
         timings[f"{stream}: total"] = time.time() - t_stream
 
     # zscore params file
     suffix = "_demo" if demo else ""
-    with open(f"{win_dir}/zscore_params{suffix}.json", "w") as fh:
+    with open(f"{win_dir}/zscore_params{tag}{suffix}.json", "w") as fh:
         json.dump(zparams, fh, indent=2)
 
-    # ---- figures (real panel only, skip in demo) --------------------------
+    # ---- figures (real headline stream only, skip in demo) ----------------
     if not demo and panel_perm0:
-        _fig_timeline(panel_perm0, tok_names, loaded, f"{fig_dir}/T3_fertility_timeline.png")
+        _fig_timeline(panel_perm0, tok_names, loaded, f"{fig_dir}/T3_fertility_timeline{tag}.png")
         xlmr = next((n for n in loaded if "xlm-roberta" in n), None)
         if xlmr:
-            _fig_grid(panel_perm0[xlmr], xlmr, f"{fig_dir}/T3_signal_grid.png")
-        zp = zparams.get("bn_panel", {})
-        _fig_decomposition(panel_perm0, loaded, zp, f"{fig_dir}/T4_decomposition.png")
-        _fig_signal_comparison(panel_perm0, loaded, f"{fig_dir}/T4_signal_comparison.png")
+            _fig_grid(panel_perm0[xlmr], xlmr, f"{fig_dir}/T3_signal_grid{tag}.png")
+        zp = zparams.get(HEADLINE, {})
+        _fig_decomposition(panel_perm0, loaded, zp, f"{fig_dir}/T4_decomposition{tag}.png")
+        _fig_signal_comparison(panel_perm0, loaded, f"{fig_dir}/T4_signal_comparison{tag}.png")
 
     # ---- reports ----------------------------------------------------------
     _write_report(t3_path, demo, args, tok_info, tok_names, raw_fertility,
                   fert_len_corr, null_pairs, panel_perm0, loaded, calib_frac,
                   timings, time.time() - t_start, num_shuffles, gate1_ok,
-                  vocab_frac, ref_frac)
-    _write_t4_report(t4_path, demo, args, loaded, panel_perm0, zparams.get("bn_panel", {}),
+                  vocab_frac, ref_frac, HEADLINE, fert_range)
+    _write_t4_report(t4_path, demo, args, loaded, panel_perm0, zparams.get(HEADLINE, {}),
                      type_valid, type_probe, s8_null, sigma_s4, ref_dates,
-                     vocab_frac, ref_frac, timings, time.time() - t_start)
+                     vocab_frac, ref_frac, timings, time.time() - t_start,
+                     HEADLINE, FULL)
     log(f"Reports written to {t3_path} and {t4_path}")
     return 0
 
@@ -770,13 +819,15 @@ def _final_slice(d, frac=0.10):
 
 
 def _write_t4_report(path, demo, args, loaded, panel_perm0, zp, type_valid, type_probe,
-                     s8_null, sigma_s4, ref_dates, vocab_frac, ref_frac, timings, wall):
+                     s8_null, sigma_s4, ref_dates, vocab_frac, ref_frac, timings, wall,
+                     headline, full):
     rep = Report()
     rep.w("# TASK 4 — Calibration fix, signal variants, dilution decomposition")
     rep.w()
     rep.w(f"- Mode: {'DEMO' if demo else 'FULL'} · wall-clock {wall:.1f}s")
+    rep.w(f"- Language: `{args.lang}` · headline stream: `{headline}`")
     rep.w("- Reproduce: `python src/streams.py --params params.yaml && "
-          "python src/fertility.py --params params.yaml`")
+          f"python src/fertility.py --lang {args.lang} --params params.yaml`")
     rep.w()
 
     surprises, blockers = [], []
@@ -790,13 +841,13 @@ def _write_t4_report(path, demo, args, loaded, panel_perm0, zp, type_valid, type
           f"`[{(vocab_frac+ref_frac)*100:.0f}%, end)`. μ_ref/σ_ref for **every** signal "
           "come from the reference epoch; V (S4 vocabulary) from the vocabulary epoch.")
     rep.w()
-    rep.w(f"Reference-epoch calendar dates — bn_panel: **{ref_dates.get('bn_panel','?')}**, "
-          f"bn_full: **{ref_dates.get('bn_full','?')}**.")
+    rep.w(f"Reference-epoch calendar dates — {headline}: **{ref_dates.get(headline,'?')}**, "
+          f"{full}: **{ref_dates.get(full,'?')}**.")
     rep.w()
-    rows = [[n, f"{sigma_s4.get(('bn_panel', n), float('nan')):.5f}"] for n in names]
-    rep.table(["tokenizer", "σ_ref(S4) on bn_panel"], rows)
-    s4_ok = all(np.isfinite(sigma_s4.get(("bn_panel", n), np.nan)) and
-                sigma_s4.get(("bn_panel", n), 0) > 0 for n in names)
+    rows = [[n, f"{sigma_s4.get((headline, n), float('nan')):.5f}"] for n in names]
+    rep.table(["tokenizer", f"σ_ref(S4) on {headline}"], rows)
+    s4_ok = all(np.isfinite(sigma_s4.get((headline, n), np.nan)) and
+                sigma_s4.get((headline, n), 0) > 0 for n in names)
     rep.w(f"σ_ref(S4) > 0 for every tokenizer: **{s4_ok}** — the T3 degeneracy is fixed.")
     rep.w()
 
@@ -812,7 +863,7 @@ def _write_t4_report(path, demo, args, loaded, panel_perm0, zp, type_valid, type
     g2_ok = True
     rows = []
     for n in names:
-        ratio, r = type_valid.get(("bn_panel", n), (float("nan"), float("nan")))
+        ratio, r = type_valid.get((headline, n), (float("nan"), float("nan")))
         ok = np.isfinite(r) and r >= 0.95
         g2_ok = g2_ok and ok
         rows.append([n, f"{ratio:.3f}", f"{r:.4f}", "yes" if ok else "**no**"])
@@ -900,7 +951,7 @@ def _write_t4_report(path, demo, args, loaded, panel_perm0, zp, type_valid, type
     rep.w("`obs Δz(S1)` vs `pred Δz(S1) [token]` agreeing within ~2× is the intended "
           "result. `[type]` shows the naïve type-weighted over-shoot — the dilution size.")
     rep.w()
-    s8_null_note = ", ".join(f"{n}: {s8_null.get(('bn_panel', n), 0)}" for n in names)
+    s8_null_note = ", ".join(f"{n}: {s8_null.get((headline, n), 0)}" for n in names)
     rep.w(f"Windows with S8 null (no novel types), per tokenizer (perm00): {s8_null_note}. "
           "These are emitted null, not zero.")
     rep.w()
@@ -908,10 +959,12 @@ def _write_t4_report(path, demo, args, loaded, panel_perm0, zp, type_valid, type
     # ---- Part 5: trend shape ----
     rep.w("## Part 5 — trend shape, COVID window, window-size artifact")
     rep.w()
+    # Years actually present in the headline stream (2016-2020 for bn).
+    yrs = sorted({int(y) for n_ in names
+                  for y in pd.to_datetime(panel_perm0[n_]["median_date"]).dt.year.unique()})
     for sig in ["S1", "S1c", "S4", "S7"]:
         rep.w(f"**Mean z per year — {sig}:**")
         rep.w()
-        yrs = [2016, 2017, 2018, 2019, 2020]
         rows = []
         for n in names:
             d = panel_perm0[n].copy()
@@ -1027,15 +1080,17 @@ def _final_mean_z(dfw, col, frac=0.10):
 
 def _write_report(path, demo, args, tok_info, tok_names, raw_fertility, fert_len_corr,
                   null_pairs, panel_perm0, loaded, calib_frac, timings, wall,
-                  num_shuffles, gate1_ok, vocab_frac, ref_frac):
+                  num_shuffles, gate1_ok, vocab_frac, ref_frac, headline, fert_range):
     rep = Report()
     rep.w("# TASK 3 — Fertility signals (S1-S4) report")
     rep.w()
     rep.w(f"- Mode: {'DEMO' if demo else 'FULL'} · wall-clock {wall:.1f}s")
+    rep.w(f"- Language: `{args.lang}` · headline stream: `{headline}`")
     rep.w("- Reproduce:")
     rep.w("```")
     rep.w("python src/streams.py --params params.yaml")
-    rep.w(f"python src/fertility.py --params {args.params} --report {args.report}")
+    rep.w(f"python src/fertility.py --lang {args.lang} --params {args.params} "
+          f"--report {args.report}")
     rep.w("```")
     rep.w()
 
@@ -1091,16 +1146,16 @@ def _write_report(path, demo, args, tok_info, tok_names, raw_fertility, fert_len
                          "SentencePiece as the brief assumed.")
 
     # raw mean fertility
-    rep.w("## Raw mean fertility (whole panel)")
+    rep.w(f"## Raw mean fertility (whole headline stream `{headline}`)")
     rep.w()
-    rep.w("Descriptive tokens-per-word over all of `bn_panel` (spec §5.5). Amendment: "
+    rep.w(f"Descriptive tokens-per-word over all of `{headline}` (spec §5.5). Amendment: "
           "Qwen ~8-10 is expected (byte-level BPE, negligible Bengali vocabulary).")
     rep.w()
     rows = []
     for name in loaded:
-        rf = raw_fertility.get(("bn_panel", name))
+        rf = raw_fertility.get((headline, name))
         rows.append([name, f"{rf:.3f}" if rf else "—"])
-    rep.table(["tokenizer", "raw mean fertility (panel)"], rows)
+    rep.table(["tokenizer", "raw mean fertility (headline stream)"], rows)
 
     # amendment: fertility vs mean word length correlation
     rep.w("### Fertility vs orthographic word length (amendment)")
@@ -1111,7 +1166,7 @@ def _write_report(path, demo, args, tok_info, tok_names, raw_fertility, fert_len
     rep.w()
     rows = []
     for name in loaded:
-        r = fert_len_corr.get(("bn_panel", name))
+        r = fert_len_corr.get((headline, name))
         flag = " ⚠️ encodes script length" if (r is not None and r > 0.9) else ""
         rows.append([name, f"{r:.3f}" if r is not None else "—", flag.strip() or "—"])
         if r is not None and r > 0.9:
@@ -1145,12 +1200,12 @@ def _write_report(path, demo, args, tok_info, tok_names, raw_fertility, fert_len
           "is the crude uncalibrated answer to *'does fertility rise by 2020?'*")
     rep.w()
     rows = []
-    zparams = json.load(open("features/windows/zscore_params.json")) if os.path.exists(
-        "features/windows/zscore_params.json") else {}
+    zp_path = f"features/windows/zscore_params{lang_tag(args.lang)}.json"
+    zparams = json.load(open(zp_path)) if os.path.exists(zp_path) else {}
     for name in loaded:
         d = panel_perm0.get(name)
         for s in ["S1", "S2", "S3", "S4", "S1b"]:
-            zp = zparams.get("bn_panel", {}).get(name, {}).get(f"{s}@perm00", {})
+            zp = zparams.get(headline, {}).get(name, {}).get(f"{s}@perm00", {})
             mu = zp.get("mu"); sd = zp.get("sigma")
             fz = _final_mean_z(d, "z_" + s) if d is not None else float("nan")
             rows.append([name, s,
@@ -1240,10 +1295,11 @@ def _write_report(path, demo, args, tok_info, tok_names, raw_fertility, fert_len
 
     # ---- STATUS -----------------------------------------------------------
     # gates
+    lo_f, hi_f = fert_range
     g1 = gate1_ok  # per-doc counts exist, nulls only where expected
     g2 = perm2_ok
     g3 = win_p99 < 3000
-    g4 = all(1.5 <= raw_fertility.get(("bn_panel", n), 0) <= 12.0 for n in loaded)
+    g4 = all(lo_f <= raw_fertility.get((headline, n), 0) <= hi_f for n in loaded)
     # g5: calibration epoch mean~0 sd~1
     g5 = True
     for name in loaded:
@@ -1278,7 +1334,7 @@ def _write_report(path, demo, args, tok_info, tok_names, raw_fertility, fert_len
     rep.w(f"GATE 1 — per-doc counts exist for all {len(loaded)} tokenizers, no unexpected nulls:  {pf(g1)}")
     rep.w(f"GATE 2 — 11 valid permutations, perm_00 = identity:                          {pf(g2)}")
     rep.w(f"GATE 3 — window n_words p99 < 3000 (windows are tight):                      {pf(g3)}   (p99={win_p99:.0f})")
-    rep.w(f"GATE 4 — raw mean fertility in [1.5, 12.0] for every tokenizer:              {pf(g4)}   (amended range)")
+    rep.w(f"GATE 4 — raw mean fertility in [{lo_f}, {hi_f}] for every tokenizer:  {pf(g4)}   (per-language range)")
     rep.w(f"GATE 5 — z-scored calibration epoch has mean ~0, sd ~1 for every stream:     {pf(g5)}")
     rep.w(f"GATE 6 — S4 computed with a frozen calibration vocabulary, no leakage:       {pf(g6)}")
     rep.w("")

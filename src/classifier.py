@@ -16,8 +16,12 @@ publisher (3 classes, flat prior by T2 panel design) and, as a secondary task, t
 Per-window error rate is z-scored with the same split-epoch protocol as every other
 signal and ADWIN-calibrated on the 10 shuffled null streams (same grid, same targets).
 
+The stream is {lang}_panel. Non-bn languages write tagged artifacts (suffix _{lang})
+so bn files are never overwritten.
+
 Usage:
     python src/classifier.py --params params.yaml
+    python src/classifier.py --lang ns --params params.yaml
     python src/classifier.py --demo
 """
 
@@ -41,7 +45,6 @@ from detect import adwin_alarms, far_curve, pick_delta, epoch_bounds  # noqa
 
 OUT_DIR = "features/classifier"
 RES_DIR = "results"
-STREAM = "bn_panel"
 
 
 def log(m):
@@ -125,10 +128,16 @@ def calibrate(null_zstreams, grid, targets):
 
 def main():
     ap = argparse.ArgumentParser(description="TASK 6 Part 3 — supervised S6")
+    ap.add_argument("--lang", default="bn")
     ap.add_argument("--params", default="params.yaml")
     ap.add_argument("--demo", action="store_true")
     args = ap.parse_args()
     t0 = time.time()
+
+    lang = args.lang
+    STREAM = f"{lang}_panel"
+    tag = "" if lang == "bn" else f"_{lang}"
+
     P = yaml.safe_load(open(args.params))
     nf = P["classifier"]["n_features"]
     lr = P["classifier"]["learning_rate"]
@@ -141,7 +150,14 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     os.makedirs(RES_DIR, exist_ok=True)
 
-    df = pd.read_parquet(f"data/interim/{STREAM}.parquet",
+    parquet = f"data/interim/{STREAM}.parquet"
+    if not os.path.exists(parquet):
+        log(f"[classifier] ERROR: {parquet} not found — the publisher classifier needs "
+            f"a {lang}_panel (flat publisher prior). Run prepare.py --lang {lang} with "
+            "panel_publishers configured.")
+        return 2
+
+    df = pd.read_parquet(parquet,
                          columns=["doc_id", "text", "date", "publisher", "topic", "n_words"])
     if demo:
         df = df.head(6000).reset_index(drop=True)
@@ -149,7 +165,7 @@ def main():
     nwords = df["n_words"].to_numpy(np.int64)
     dates_ns = pd.to_datetime(df["date"]).values.astype("datetime64[ns]").astype(np.int64)
     years = pd.to_datetime(df["date"]).dt.year.to_numpy()
-    log(f"[classifier] {n:,} docs; hashing bag-of-words ...")
+    log(f"[classifier] {lang}: {n:,} docs; hashing bag-of-words ...")
     feats = [hashed_bow(t, nf) for t in df["text"].tolist()]
 
     # permutations (real=perm00 identity, nulls 01..10)
@@ -219,7 +235,7 @@ def main():
                                     "median_date": pd.to_datetime(md),
                                     "err": ew, "z": z})
                 sfx = "_demo" if demo else ""
-                out.to_parquet(f"{OUT_DIR}/{target}_{variant}__perm{k:02d}{sfx}.parquet",
+                out.to_parquet(f"{OUT_DIR}/{target}_{variant}{tag}__perm{k:02d}{sfx}.parquet",
                                index=False)
                 if k in null_ks:
                     zz = z[nre:]; null_z.append(zz[~np.isnan(zz)])
@@ -229,9 +245,9 @@ def main():
                                     "far_curve": curve, "targets": picks, "null_windows": tot}
                 log(f"  {sig}: delta*(1e-3)={picks[f'{float(P['adwin']['target_far']):g}']['delta']}")
 
-    with open(f"{RES_DIR}/classifier_calibration.json", "w") as fh:
+    with open(f"{RES_DIR}/classifier_calibration{tag}.json", "w") as fh:
         json.dump({"grid": grid, "far_targets": far_targets, "calibration": calibration}, fh, indent=2)
-    with open(f"{RES_DIR}/classifier_metrics.json", "w") as fh:
+    with open(f"{RES_DIR}/classifier_metrics{tag}.json", "w") as fh:
         json.dump(metrics, fh, indent=2)
     log(f"[classifier] done. Wall-clock {time.time()-t0:.1f}s")
     return 0

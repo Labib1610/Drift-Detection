@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
 """
-TASK 2 — Part 1. Bangla (Potrika) data preparation.
+TASK 2 — Part 1. Data preparation (multi-language).
 
-Builds two chronological streams from one cleaned pool:
+Builds chronological streams from one cleaned pool:
 
-  * bn_panel  — primary. Inqilab / Jugantor / Kaler Kontho only, 2016-01..2020-12,
-                equal quota per (month x source) cell so the publisher mix is
-                constant across the stream and any fertility drift is lexical,
-                not compositional.
-  * bn_full   — robustness (appendix). All six sources, 2014-06..2020-12, sampled
-                uniformly across time (equal per-month quota) up to the cap.
+  * {lang}_panel — primary (only if the language config has `panel_publishers`).
+                Equal quota per (month x source) cell so the publisher mix is
+                constant across the stream and any drift is lexical, not
+                compositional.
+  * {lang}_full  — robustness (appendix). All sources, sampled uniformly across
+                time (equal per-month quota) up to the cap.
+
+Loaders (selected by `cfg['loader']` in params.yaml):
+  potrika_csv   Potrika Bangla CSVs           -> read_raw
+  newssumm_csv  NewsSumm_processed.xlsx (or CSVs) -> read_newssumm
+  mlsum_hf      MLSUM via HuggingFace         -> read_mlsum
+
+Every run also writes a publisher-coverage section to the report, with a
+suggested panel (publishers + date range) computed from the cleaned pool.
 
 All thresholds come from params.yaml; there are no magic numbers in the code.
 The script is deterministic: two runs produce byte-identical parquet.
 
 Usage:
     python src/prepare.py --lang bn --params params.yaml --report reports/T2_report.md
+    python src/prepare.py --lang ns --params params.yaml --report reports/T2_report_ns.md
     python src/prepare.py --lang bn --demo        # 5,000-doc subsample, <30s
 """
 
@@ -24,6 +33,7 @@ from __future__ import annotations
 import argparse
 import glob
 import hashlib
+import itertools
 import json
 import math
 import os
@@ -75,6 +85,9 @@ OUT_SCHEMA = pa.schema([
 
 ROW_GROUP_SIZE = 10_000
 
+# Raw-column contract every loader must satisfy (what clean_pool expects).
+RAW_COLS = ["News", "Category", "Heading", "Date", "Source"]
+
 
 def log(msg: str) -> None:
     print(msg, flush=True)
@@ -111,6 +124,7 @@ def icu_wordcount(t: str) -> int:
 # Loading + cleaning
 # ---------------------------------------------------------------------------
 def read_raw(raw_dir: str, demo: bool):
+    """Potrika loader (unchanged)."""
     files = sorted(glob.glob(os.path.join(raw_dir, "**", "*.csv"), recursive=True))
     if not files:
         raise FileNotFoundError(f"No CSVs under {raw_dir}")
@@ -124,6 +138,145 @@ def read_raw(raw_dir: str, demo: bool):
     log(f"  read {len(files)} files, {len(raw):,} raw rows"
         + (" (demo: 200/file)" if demo else ""))
     return raw, len(files)
+
+
+# ---- NewsSumm ---------------------------------------------------------------
+# NewsSumm_processed columns:
+#   newspaper_name, published_date, headline, article_text, human_summary, news_category
+NEWSSUMM_MAP = {
+    "article_text": "News",
+    "news_category": "Category",
+    "headline": "Heading",
+    "published_date": "Date",
+    "newspaper_name": "Source",
+}
+_NS_DATE_FORMATS = ["%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y", "%d-%m-%Y",
+                    "%d %B %Y", "%B %d, %Y", "%m/%d/%Y"]
+_NS_TIME_TAIL = re.compile(r"(T|\s+)\d{1,2}:\d{2}(:\d{2})?.*$")
+
+NS_CANONICAL_NEWSPAPERS = [
+    "The Times of India", "The Hindu", "Hindustan Times", "Indian Express",
+    "The Economic Times", "Business Standard", "The Mint", "Financial Express",
+    "Deccan Chronicle", "The Telegraph", "Deccan Herald", "The Pioneer",
+    "The Statesman", "The Tribune", "Mid-Day", "Mumbai Mirror", "Pune Mirror",
+    "Bangalore Mirror", "Ahmedabad Mirror", "DNA", "Firstpost",
+    "Free Press Journal", "Navhind Times", "Sentinel Assam", "The Asian Age",
+    "The Shillong Times", "Imphal Free Press", "Orissa POST", "Hitavada",
+    "Nagaland Post", "Sikkim Express", "Greater Kashmir", "Kashmir Observer",
+    "Daily Excelsior", "The Millennium Post", "Central Chronicle",
+]
+
+
+def _ns_key(s: object) -> str:
+    """Case/punctuation-insensitive key with a leading 'the' dropped, so
+    'Times of India', 'THE TIMES OF INDIA' and 'the-times-of-india' all match."""
+    k = re.sub(r"[^a-z0-9]", "", str(s).lower())
+    return k[3:] if k.startswith("the") and len(k) > 3 else k
+
+
+NS_KEY_TO_CANON = {_ns_key(n): n for n in NS_CANONICAL_NEWSPAPERS}
+
+
+def _flex_date(s: pd.Series) -> pd.Series:
+    """Parse mixed date strings (Excel datetimes arrive as 'YYYY-MM-DD HH:MM:SS').
+    Formats are tried in order, day-first before month-first for ambiguous
+    slash dates. Returns %Y/%m/%d strings (NaN if unparseable) because
+    clean_pool parses with RAW_DATE_FORMAT."""
+    s = s.astype(str).str.strip().str.replace(_NS_TIME_TAIL, "", regex=True)
+    out = pd.Series(pd.NaT, index=s.index, dtype="datetime64[ns]")
+    for fmt in _NS_DATE_FORMATS:
+        miss = out.isna()
+        if not miss.any():
+            break
+        out[miss] = pd.to_datetime(s[miss], format=fmt, errors="coerce")
+    return out.dt.strftime("%Y/%m/%d")
+
+
+def read_newssumm(raw_dir: str, demo: bool):
+    """NewsSumm loader. `raw_dir` may be a directory (searched recursively for
+    .xlsx/.xls/.csv) or a direct path to a single file. Requires `openpyxl`
+    for .xlsx. Maps the dataset's columns onto RAW_COLS (human_summary is not
+    used) and canonicalises newspaper names against NS_CANONICAL_NEWSPAPERS so
+    panel_publishers in params.yaml can use the canonical spelling."""
+    if os.path.isfile(raw_dir):
+        files = [raw_dir]
+    else:
+        files = []
+        for ext in ("xlsx", "xls", "csv"):
+            files += glob.glob(os.path.join(raw_dir, "**", f"*.{ext}"), recursive=True)
+        files = sorted(f for f in files if not os.path.basename(f).startswith("~$"))
+    if not files:
+        raise FileNotFoundError(f"No .xlsx/.xls/.csv under {raw_dir}")
+    usecols = list(NEWSSUMM_MAP)
+    nrows = 200 if demo else None
+    parts = []
+    for f in files:
+        if f.lower().endswith(".csv"):
+            df = pd.read_csv(f, usecols=usecols, dtype=str, nrows=nrows)
+        else:
+            df = pd.read_excel(f, usecols=usecols, dtype=str, nrows=nrows)
+        df = df.rename(columns=NEWSSUMM_MAP)
+        df["Date"] = _flex_date(df["Date"])
+        parts.append(df[RAW_COLS])
+    raw = pd.concat(parts, ignore_index=True)
+
+    # Canonicalise newspaper names; report anything that did not match.
+    matched = raw["Source"].map(lambda s: _ns_key(s) in NS_KEY_TO_CANON)
+    unmapped = raw.loc[~matched, "Source"].dropna()
+    raw["Source"] = raw["Source"].map(lambda s: NS_KEY_TO_CANON.get(_ns_key(s), s))
+
+    n_bad = int(raw["Date"].isna().sum())
+    log(f"  read {len(files)} newssumm file(s), {len(raw):,} raw rows"
+        + (" (demo: 200/file)" if demo else "")
+        + f"; {n_bad:,} unparseable dates (dropped by rule 4)")
+    if len(unmapped):
+        top = unmapped.value_counts().head(10)
+        log(f"  {len(unmapped):,} rows have a newspaper name not in the canonical list "
+            f"({unmapped.nunique()} distinct); top: "
+            + ", ".join(f"{k!r}×{v}" for k, v in top.items()))
+    return raw, len(files)
+
+
+# ---- MLSUM ------------------------------------------------------------------
+def _mlsum_date(s: pd.Series) -> pd.Series:
+    """Try ISO first, then day-first; emit %Y/%m/%d strings (NaN if unparseable)."""
+    d = pd.to_datetime(s, format="%Y-%m-%d", errors="coerce")
+    miss = d.isna()
+    if miss.any():
+        d[miss] = pd.to_datetime(s[miss], format="%d/%m/%Y", errors="coerce")
+    return d.dt.strftime("%Y/%m/%d")
+
+
+def read_mlsum(hf_config: str, demo: bool):
+    """MLSUM via HuggingFace `datasets`. Columns: text, topic, title, date, url.
+    MLSUM has no publisher field, so Source = URL host (www. stripped)."""
+    from datasets import load_dataset
+    parts = []
+    for split in ("train", "validation", "test"):
+        spec = f"{split}[:200]" if demo else split
+        ds = load_dataset("mlsum", hf_config, split=spec, trust_remote_code=True)
+        f = ds.to_pandas()
+        parts.append(pd.DataFrame({
+            "News": f["text"],
+            "Category": f["topic"],
+            "Heading": f["title"],
+            "Date": _mlsum_date(f["date"].astype(str)),
+            "Source": f["url"].astype(str).str.extract(r"https?://(?:www\.)?([^/]+)")[0],
+        }))
+    raw = pd.concat(parts, ignore_index=True)[RAW_COLS]
+    log(f"  read mlsum/{hf_config}: {len(raw):,} raw rows" + (" (demo)" if demo else ""))
+    return raw, 3
+
+
+def load_raw(cfg: dict, demo: bool):
+    loader = cfg["loader"]
+    if loader == "potrika_csv":
+        return read_raw(cfg["raw_dir"], demo)
+    if loader == "newssumm_csv":
+        return read_newssumm(cfg["raw_dir"], demo)
+    if loader == "mlsum_hf":
+        return read_mlsum(cfg["hf_config"], demo)
+    raise ValueError(f"unknown loader {loader!r}")
 
 
 def clean_pool(raw: pd.DataFrame, ledger: "OrderedDict[str, dict]"):
@@ -242,7 +395,7 @@ def build_full(pool: pd.DataFrame, start: str, end: str, cap: int, seed: int):
 # ---------------------------------------------------------------------------
 # Parquet writing
 # ---------------------------------------------------------------------------
-def write_parquet(df: pd.DataFrame, path: str) -> None:
+def write_parquet(df: pd.DataFrame, path: str, lang: str = "bn") -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     df = df.sort_values(["date", "doc_id"], kind="mergesort").reset_index(drop=True)
     pubs = sorted(df["publisher"].unique().tolist())
@@ -254,7 +407,7 @@ def write_parquet(df: pd.DataFrame, path: str) -> None:
             pd.Categorical(df["publisher"], categories=pubs),
             pa.dictionary(pa.int32(), pa.string())),
         "topic": pa.array(df["topic"].tolist(), pa.string()),
-        "lang": pa.array(["bn"] * len(df), pa.string()),
+        "lang": pa.array([lang] * len(df), pa.string()),
         "n_words": pa.array(df["n_words"].astype("int32").tolist(), pa.int32()),
     }, schema=OUT_SCHEMA)
     pq.write_table(table, path, compression="zstd", row_group_size=ROW_GROUP_SIZE)
@@ -292,44 +445,141 @@ def stream_summary(df):
     }
 
 
+# ---------------------------------------------------------------------------
+# Publisher coverage + panel suggestion (diagnostic only; builds nothing)
+# ---------------------------------------------------------------------------
+def _longest_run(mask: np.ndarray):
+    """Return (length, start_index) of the longest run of True in a 1-D bool array."""
+    best_len = best_start = run = 0
+    for i, v in enumerate(mask):
+        run = run + 1 if v else 0
+        if run > best_len:
+            best_len, best_start = run, i - run + 1
+    return best_len, best_start
+
+
+def write_coverage(rep: "Report", pool: pd.DataFrame, start: str, end: str,
+                   k: int, min_cell: int, top_n: int, cap: int):
+    """Publisher x month coverage on the cleaned pool. A publisher-month is 'ok'
+    if it has >= min_cell docs. Suggests the k-publisher combination (among the
+    top_n by months covered) with the longest common all-ok run of months.
+    Returns the suggestion dict or None."""
+    months = pd.period_range(pd.Period(start, freq="M"), pd.Period(end, freq="M"), freq="M")
+    sub = pool.assign(ym=pool["date"].dt.to_period("M"))
+    sub = sub[(sub["ym"] >= months[0]) & (sub["ym"] <= months[-1])]
+
+    rep.w("### Publisher coverage and panel suggestion")
+    rep.w()
+    rep.w(f"Range probed: **{months[0]}..{months[-1]}** ({len(months)} months). A "
+          f"publisher-month counts as covered when it has ≥ **{min_cell}** cleaned docs "
+          "(`suggest_min_cell`).")
+    rep.w()
+    if sub.empty:
+        rep.w("_No documents in range._")
+        rep.w()
+        return None
+
+    cnt = (sub.groupby(["publisher", "ym"]).size().unstack(fill_value=0)
+              .reindex(columns=months, fill_value=0))
+    ok = cnt >= min_cell
+    stats = pd.DataFrame({"docs": cnt.sum(axis=1), "months_ok": ok.sum(axis=1)})
+    stats = stats.sort_values(["months_ok", "docs"], ascending=[False, False])
+    top = stats.index[:top_n].tolist()
+
+    rep.w(f"Top {len(top)} publishers by months covered:")
+    rep.w()
+    rep.table(["publisher", "docs in range", f"months covered (of {len(months)})"],
+              [[p, f"{int(stats.loc[p, 'docs']):,}", int(stats.loc[p, "months_ok"])]
+               for p in top])
+
+    sub2 = sub[sub["publisher"].isin(top)].assign(year=lambda d: d["ym"].dt.year)
+    yr = pd.crosstab(sub2["publisher"], sub2["year"]).reindex(top)
+    rep.w("Docs per year for those publishers:")
+    rep.w()
+    rep.table(["publisher"] + [str(c) for c in yr.columns],
+              [[p] + [f"{int(v):,}" for v in yr.loc[p].values] for p in top])
+
+    best = None
+    for combo in itertools.combinations(top, k):
+        allok = ok.loc[list(combo)].all(axis=0).to_numpy()
+        length, s0 = _longest_run(allok)
+        if length > 0 and (best is None or length > best["length"]):
+            best = {"pubs": list(combo), "length": length,
+                    "start": months[s0], "end": months[s0 + length - 1]}
+    if best is None:
+        rep.w(f"**No {k}-publisher combination has a common covered month** among the "
+              f"top {len(top)} at ≥{min_cell} docs/month. Lower `suggest_min_cell` or "
+              "`suggest_k`, or narrow the range.")
+        rep.w()
+        return None
+    quota = cap // (best["length"] * k)
+    rep.w(f"**Suggested panel** — longest common covered run for {k} publishers: "
+          f"{best['pubs']} over **{best['start']}..{best['end']}** "
+          f"({best['length']} months → quota {quota} docs/cell at cap {cap:,}).")
+    rep.w()
+    rep.w("```yaml")
+    rep.w("panel_publishers: [" + ", ".join(f'"{p}"' for p in best["pubs"]) + "]")
+    rep.w(f'panel_start: "{best["start"]}"')
+    rep.w(f'panel_end: "{best["end"]}"')
+    rep.w("```")
+    rep.w()
+    rep.w("_This is a starting point: the search looks only at the top publishers by "
+          "months covered, and ignores topic mix and article length._")
+    rep.w()
+    return best
+
+
 def main():
-    ap = argparse.ArgumentParser(description="TASK 2 Part 1 — Bangla preparation")
+    ap = argparse.ArgumentParser(description="TASK 2 Part 1 — data preparation")
     ap.add_argument("--lang", default="bn")
     ap.add_argument("--params", default="params.yaml")
     ap.add_argument("--report", default="reports/T2_report.md")
     ap.add_argument("--demo", action="store_true",
                     help="5,000-doc subsample, writes *_demo artifacts, <30s")
     args = ap.parse_args()
-
-    if args.lang != "bn":
-        log(f"ERROR: only --lang bn is implemented in T2 (got {args.lang}).")
-        return 2
+    lang = args.lang
 
     with open(args.params) as fh:
         P = yaml.safe_load(fh)
+    if lang not in P:
+        log(f"ERROR: no '{lang}' block in {args.params}.")
+        return 2
     seed = P["seed"]
     np.random.seed(seed)
     cap = P["data"]["max_docs_per_language"]
     min_words = P["data"]["min_doc_words"]
-    bn = P["bn"]
-    raw_dir = bn["raw_dir"]
-    panel_pubs = list(bn["panel_publishers"])
-    panel_start, panel_end = bn["panel_start"], bn["panel_end"]
+    cfg = P[lang]
     calib_frac = P["window"]["calibration_fraction"]
+
+    has_panel = "panel_publishers" in cfg
+    panel_pubs = list(cfg["panel_publishers"]) if has_panel else []
+    panel_start = cfg.get("panel_start")
+    panel_end = cfg.get("panel_end")
+    if has_panel and not (panel_start and panel_end):
+        log(f"ERROR: '{lang}' has panel_publishers but no panel_start/panel_end.")
+        return 2
+    full_start = cfg.get("full_start", "2014-06")
+    full_end = cfg.get("full_end", "2020-12")
+    n_full_pubs = cfg.get("n_full_publishers", 6)
+    raw_src = cfg.get("raw_dir") or cfg.get("hf_config", "?")
+    suggest_k = cfg.get("suggest_k", len(panel_pubs) or 3)
+    suggest_min_cell = cfg.get("suggest_min_cell", 100)
+    suggest_top_n = cfg.get("suggest_top_n", 10)
 
     demo = args.demo
     if demo:
         cap = 5000
-        panel_out = "data/interim/bn_panel_demo.parquet"
-        full_out = "data/interim/bn_full_demo.parquet"
-        report_path = "reports/T2_report_demo.md"
+        panel_out = f"data/interim/{lang}_panel_demo.parquet"
+        full_out = f"data/interim/{lang}_full_demo.parquet"
+        report_path = f"reports/T2_report_{lang}_demo.md"
     else:
-        panel_out = "data/interim/bn_panel.parquet"
-        full_out = "data/interim/bn_full.parquet"
+        panel_out = f"data/interim/{lang}_panel.parquet"
+        full_out = f"data/interim/{lang}_full.parquet"
         report_path = args.report
 
-    log("Reading raw Potrika (RawDataset only) ...")
-    raw, n_files = read_raw(raw_dir, demo)
+    log(f"Reading raw data (loader={cfg['loader']}, lang={lang}) ...")
+    raw, n_files = load_raw(cfg, demo)
+    raw = raw[RAW_COLS]
     n_raw = len(raw)
 
     ledger = OrderedDict()
@@ -347,42 +597,60 @@ def main():
     n_pool = len(pool)
     log(f"Cleaned pool: {n_pool:,} docs. Building streams ...")
 
-    panel, fill, quota, n_cells, months = build_panel(
-        pool, panel_pubs, panel_start, panel_end, cap, seed)
-    full, full_quota, n_full_months = build_full(
-        pool, "2014-06", "2020-12", cap, seed)
+    surprises = []
+    blockers = []
 
-    write_parquet(panel, panel_out)
-    write_parquet(full, full_out)
-    log(f"Wrote {panel_out} ({len(panel):,} docs) and {full_out} ({len(full):,} docs).")
+    # Validate panel publishers against the cleaned pool BEFORE building anything,
+    # so a spelling mismatch gives a clear error instead of an empty panel file
+    # (which streams.py would then auto-discover).
+    pool_pub_counts = pool["publisher"].value_counts()
+    missing_pubs = [p for p in panel_pubs if p not in pool_pub_counts.index]
+    panel_built = has_panel and not missing_pubs
+    if missing_pubs:
+        msg = (f"panel_publishers not found in cleaned pool: {missing_pubs}. "
+               "Names must match exactly; see the publisher list in the report.")
+        log("ERROR: " + msg)
+        blockers.append(msg)
+
+    if panel_built:
+        panel, fill, quota, n_cells, months = build_panel(
+            pool, panel_pubs, panel_start, panel_end, cap, seed)
+    else:
+        panel = pool.iloc[:0].copy()
+        fill = pd.DataFrame(columns=["month", "publisher", "available", "taken", "shortfall"])
+        quota, n_cells, months = 0, 0, []
+    full, full_quota, n_full_months = build_full(pool, full_start, full_end, cap, seed)
+
+    if panel_built:
+        write_parquet(panel, panel_out, lang)
+    write_parquet(full, full_out, lang)
+    if panel_built:
+        log(f"Wrote {panel_out} ({len(panel):,} docs) and {full_out} ({len(full):,} docs).")
+    else:
+        log(f"Panel skipped. Wrote {full_out} ({len(full):,} docs).")
 
     # ---- report -----------------------------------------------------------
     rep = Report()
-    rep.w("# TASK 2 — Bangla preparation + CC-News probe report")
+    rep.w(f"# TASK 2 — {lang} preparation report")
     rep.w()
     rep.w(f"- Generated: {datetime.now().isoformat(timespec='seconds')}")
-    rep.w(f"- Mode: {'DEMO (5k subsample)' if demo else 'FULL'}")
+    rep.w(f"- Mode: {'DEMO (5k subsample)' if demo else 'FULL'} · loader `{cfg['loader']}`")
     rep.w(f"- Params: `{args.params}` · seed {seed}")
     rep.w()
     rep.w("Reproduce with:")
     rep.w("```")
-    if demo:
-        rep.w("python src/prepare.py --lang bn --demo")
-    else:
-        rep.w(f"python src/prepare.py --lang bn --params {args.params} --report {report_path}")
+    rep.w(f"python src/prepare.py --lang {lang}" + (" --demo" if demo else
+          f" --params {args.params} --report {report_path}"))
     rep.w("```")
     rep.w()
 
-    surprises = []
-    blockers = []
-
-    rep.w("## PART 1 — Bangla preparation")
+    rep.w(f"## PART 1 — {lang} preparation")
     rep.w()
 
     # cleaning ledger
     rep.w("### Cleaning ledger")
     rep.w()
-    rep.w(f"Raw rows read from `{raw_dir}` ({n_files} files): **{n_raw:,}**")
+    rep.w(f"Raw rows read from `{raw_src}` ({n_files} files/splits): **{n_raw:,}**")
     rep.w()
     led_rows = [["(rows in)", "", "", f"{n_raw:,}"]]
     for name, d in ledger.items():
@@ -404,154 +672,169 @@ def main():
     rep.w("Mappings applied: " + (", ".join(applied) if applied else "none"))
     rep.w()
 
-    # panel fill
-    rep.w("### Panel fill (month × source quota)")
+    # publisher names as they exist in the pool (exact strings for panel_publishers)
+    rep.w("### Publishers in the cleaned pool")
     rep.w()
-    n_underfill = int((fill["taken"] < quota).sum())
-    underfill_pct = 100.0 * n_underfill / n_cells if n_cells else 0.0
-    rep.w(f"Quota per cell: **{quota}** (= {cap} ÷ ({len(months)} months × "
-          f"{len(panel_pubs)} sources) = {n_cells} cells). "
-          f"Cells underfilled: **{n_underfill} / {n_cells}** ({underfill_pct:.1f}%). "
-          f"Panel total: **{len(panel):,}** docs.")
+    rep.w(f"{len(pool_pub_counts)} distinct publishers. Use these exact strings in "
+          "`panel_publishers`.")
     rep.w()
-    if underfill_pct > 5.0:
-        rep.w("> ⚠️ **More than 5% of cells underfilled** — the 555-doc quota is too "
-              "high for the available data; consider lowering it.")
-        surprises.append(f"{underfill_pct:.1f}% of panel cells underfilled "
-                         f"(> 5% threshold) — quota may need lowering.")
-        rep.w()
-    worst = fill[fill["shortfall"] > 0].sort_values(
-        ["shortfall", "month", "publisher"], ascending=[False, True, True]).head(10)
-    if len(worst):
-        rep.w("Worst 10 cells by shortfall:")
-        rep.w()
-        rep.table(["month", "publisher", "available", "taken", "shortfall"],
-                  [[r.month, r.publisher, r.available, r.taken, r.shortfall]
-                   for r in worst.itertuples()])
-    else:
-        rep.w("No cell underfilled.")
-        rep.w()
+    rep.table(["publisher", "docs"],
+              [[p, f"{int(c):,}"] for p, c in pool_pub_counts.items()])
 
-    # realised publisher shares per year
-    rep.w("### Realised publisher shares per year in `bn_panel`")
-    rep.w()
-    rep.w("(Confound check — each source should be ~33.3% in every year.)")
-    rep.w()
+    # coverage + panel suggestion (always; probes the panel range if configured)
+    if n_pool:
+        cov_start = panel_start if has_panel else full_start
+        cov_end = panel_end if has_panel else full_end
+        write_coverage(rep, pool, cov_start, cov_end, suggest_k,
+                       suggest_min_cell, suggest_top_n, cap)
+
     share_ok = True
-    if len(panel):
-        pnl = panel.copy()
-        pnl["year"] = pnl["date"].dt.year
-        share = pd.crosstab(pnl["year"], pnl["publisher"], normalize="index") * 100
-        headers = ["year"] + list(share.columns)
-        rows = []
-        for yr, r in share.iterrows():
-            rows.append([int(yr)] + [f"{v:.1f}%" for v in r.values])
-            if any(abs(v - 100.0 / len(panel_pubs)) > 2.0 for v in r.values):
-                share_ok = False
-        rep.table(headers, rows)
-    else:
-        share_ok = False
-        rep.w("_Panel is empty._")
+    underfill_pct = 0.0
+    if panel_built:
+        # panel fill
+        rep.w("### Panel fill (month × source quota)")
         rep.w()
+        n_underfill = int((fill["taken"] < quota).sum())
+        underfill_pct = 100.0 * n_underfill / n_cells if n_cells else 0.0
+        rep.w(f"Quota per cell: **{quota}** (= {cap} ÷ ({len(months)} months × "
+              f"{len(panel_pubs)} sources) = {n_cells} cells). "
+              f"Cells underfilled: **{n_underfill} / {n_cells}** ({underfill_pct:.1f}%). "
+              f"Panel total: **{len(panel):,}** docs.")
+        rep.w()
+        if underfill_pct > 5.0:
+            rep.w(f"> ⚠️ **More than 5% of cells underfilled** — the {quota}-doc quota is "
+                  "too high for the available data; consider lowering it.")
+            surprises.append(f"{underfill_pct:.1f}% of panel cells underfilled "
+                             f"(> 5% threshold) — quota may need lowering.")
+            rep.w()
+        worst = fill[fill["shortfall"] > 0].sort_values(
+            ["shortfall", "month", "publisher"], ascending=[False, True, True]).head(10)
+        if len(worst):
+            rep.w("Worst 10 cells by shortfall:")
+            rep.w()
+            rep.table(["month", "publisher", "available", "taken", "shortfall"],
+                      [[r.month, r.publisher, r.available, r.taken, r.shortfall]
+                       for r in worst.itertuples()])
+        else:
+            rep.w("No cell underfilled.")
+            rep.w()
 
-    # topic composition per year in panel
-    rep.w("### Topic composition per year in `bn_panel`")
-    rep.w()
-    rep.w("(Measured, not corrected — publisher and topic are correlated in "
-          "Potrika, so we size any topic drift before interpreting alarms.)")
-    rep.w()
-    if len(panel):
-        pnl = panel.copy()
-        pnl["year"] = pnl["date"].dt.year
-        tshare = pd.crosstab(pnl["year"], pnl["topic"], normalize="index") * 100
-        headers = ["year"] + list(tshare.columns)
-        rows = []
-        for yr, r in tshare.iterrows():
-            rows.append([int(yr)] + [f"{v:.1f}%" for v in r.values])
-        rep.table(headers, rows)
+        # realised publisher shares per year
+        rep.w(f"### Realised publisher shares per year in `{lang}_panel`")
+        rep.w()
+        rep.w(f"(Confound check — each source should be ~{100/len(panel_pubs):.1f}% "
+              "in every year.)")
+        rep.w()
+        if len(panel):
+            pnl = panel.copy()
+            pnl["year"] = pnl["date"].dt.year
+            share = pd.crosstab(pnl["year"], pnl["publisher"], normalize="index") * 100
+            headers = ["year"] + list(share.columns)
+            rows = []
+            for yr, r in share.iterrows():
+                rows.append([int(yr)] + [f"{v:.1f}%" for v in r.values])
+                if any(abs(v - 100.0 / len(panel_pubs)) > 2.0 for v in r.values):
+                    share_ok = False
+            rep.table(headers, rows)
+        else:
+            share_ok = False
+            rep.w("_Panel is empty._")
+            rep.w()
+
+        # topic composition per year in panel
+        rep.w(f"### Topic composition per year in `{lang}_panel`")
+        rep.w()
+        rep.w("(Measured, not corrected — publisher and topic may be correlated, "
+              "so we size any topic drift before interpreting alarms.)")
+        rep.w()
+        if len(panel):
+            pnl = panel.copy()
+            pnl["year"] = pnl["date"].dt.year
+            tshare = pd.crosstab(pnl["year"], pnl["topic"], normalize="index") * 100
+            headers = ["year"] + list(tshare.columns)
+            rows = []
+            for yr, r in tshare.iterrows():
+                rows.append([int(yr)] + [f"{v:.1f}%" for v in r.values])
+            rep.table(headers, rows)
+        else:
+            rep.w("_Panel is empty._")
+            rep.w()
     else:
-        rep.w("_Panel is empty._")
+        rep.w("### Panel")
+        rep.w()
+        if has_panel:
+            rep.w(f"Panel **not built**: publishers not found in the pool: {missing_pubs}.")
+        else:
+            rep.w(f"No `panel_publishers` in the `{lang}` config — panel not built. "
+                  "See the suggestion above.")
         rep.w()
 
     # stream summaries
     rep.w("### Output files")
     rep.w()
-    ps = stream_summary(panel)
     fs = stream_summary(full)
-    psize = os.path.getsize(panel_out) / (1024 * 1024)
     fsize = os.path.getsize(full_out) / (1024 * 1024)
-    rep.table(
-        ["stream", "docs", "date span", "total words", "mean n_words", "file MB"],
-        [["bn_panel", f"{ps['docs']:,}", f"{ps['date_min']}..{ps['date_max']}",
-          f"{ps['total_words']:,}", f"{ps['mean_words']:.1f}", f"{psize:.1f}"],
-         ["bn_full", f"{fs['docs']:,}", f"{fs['date_min']}..{fs['date_max']}",
-          f"{fs['total_words']:,}", f"{fs['mean_words']:.1f}", f"{fsize:.1f}"]])
-    rep.w(f"`bn_full` sampling: uniform across time = equal per-month quota of "
-          f"**{full_quota}** over {n_full_months} months (2014-06..2020-12). "
-          "The T2 brief's phrase *'sample proportionally within each month'* "
-          "conflicts with *'uniformly across time … do not over-represent "
-          "high-volume years'*; the equal-per-month reading is used and flagged "
-          "below for your decision.")
+    out_rows = []
+    if panel_built:
+        ps = stream_summary(panel)
+        psize = os.path.getsize(panel_out) / (1024 * 1024)
+        out_rows.append([f"{lang}_panel", f"{ps['docs']:,}",
+                         f"{ps['date_min']}..{ps['date_max']}",
+                         f"{ps['total_words']:,}", f"{ps['mean_words']:.1f}", f"{psize:.1f}"])
+    out_rows.append([f"{lang}_full", f"{fs['docs']:,}",
+                     f"{fs['date_min']}..{fs['date_max']}",
+                     f"{fs['total_words']:,}", f"{fs['mean_words']:.1f}", f"{fsize:.1f}"])
+    rep.table(["stream", "docs", "date span", "total words", "mean n_words", "file MB"],
+              out_rows)
+    rep.w(f"`{lang}_full` sampling: uniform across time = equal per-month quota of "
+          f"**{full_quota}** over {n_full_months} months ({full_start}..{full_end}).")
     rep.w()
-    surprises.append("bn_full uses equal-per-month sampling (uniform across time). "
-                     "The brief also says 'proportionally within each month' — "
-                     "confirm which you meant; only affects the appendix stream.")
+    surprises.append(f"{lang}_full uses equal-per-month sampling (uniform across time); "
+                     "confirm this is the intended reading of the brief.")
 
     # calibration epoch
-    rep.w("### Calibration epoch of `bn_panel`")
-    rep.w()
-    if len(panel):
-        pnl = panel.sort_values(["date", "doc_id"], kind="mergesort").reset_index(drop=True)
-        cut = max(1, int(math.floor(calib_frac * len(pnl))))
-        c0 = pnl["date"].iloc[0].date().isoformat()
-        c1 = pnl["date"].iloc[cut - 1].date().isoformat()
-        rep.w(f"First {calib_frac*100:.0f}% of the panel = first **{cut:,}** docs, "
-              f"spanning **{c0} → {c1}**.")
-    else:
-        c0 = c1 = "—"
-        rep.w("_Panel is empty._")
-    rep.w()
+    if panel_built:
+        rep.w(f"### Calibration epoch of `{lang}_panel`")
+        rep.w()
+        if len(panel):
+            pnl = panel.sort_values(["date", "doc_id"], kind="mergesort").reset_index(drop=True)
+            cut = max(1, int(math.floor(calib_frac * len(pnl))))
+            c0 = pnl["date"].iloc[0].date().isoformat()
+            c1 = pnl["date"].iloc[cut - 1].date().isoformat()
+            rep.w(f"First {calib_frac*100:.0f}% of the panel = first **{cut:,}** docs, "
+                  f"spanning **{c0} → {c1}**.")
+        else:
+            rep.w("_Panel is empty._")
+        rep.w()
 
     # ---- gates (Part 1) ---------------------------------------------------
-    schema_ok = True
-    try:
-        got = pq.read_schema(panel_out)
-        schema_ok = got.equals(OUT_SCHEMA) and len(panel) > 0
-    except Exception:
-        schema_ok = False
-    gate1 = schema_ok
-    gate2 = share_ok and len(panel) > 0
-    gate3 = (underfill_pct < 5.0)
+    part1_gates, part1_details = {}, {}
+    if has_panel:
+        k0 = "GATE 0 — every panel_publishers name exists in the cleaned pool"
+        part1_gates[k0] = not missing_pubs
+        part1_details[k0] = ("all found" if not missing_pubs
+                             else f"missing: {missing_pubs}")
+    if panel_built:
+        try:
+            got = pq.read_schema(panel_out)
+            schema_ok = got.equals(OUT_SCHEMA) and len(panel) > 0
+        except Exception:
+            schema_ok = False
+        k1 = f"GATE 1 — {lang}_panel.parquet exists, chronologically sorted, schema exact"
+        k2 = f"GATE 2 — publisher shares within {100/len(panel_pubs):.1f}% ± 2pp in EVERY panel year"
+        k3 = "GATE 3 — <5% of (month × source) quota cells underfilled"
+        part1_gates[k1] = schema_ok
+        part1_details[k1] = f"schema match={schema_ok}, {len(panel):,} docs"
+        part1_gates[k2] = share_ok and len(panel) > 0
+        part1_details[k2] = ("all years within tolerance" if part1_gates[k2]
+                             else "a year exceeds ±2pp")
+        part1_gates[k3] = underfill_pct < 5.0
+        part1_details[k3] = f"{underfill_pct:.1f}% underfilled"
     full_pubs = sorted(full["publisher"].unique().tolist()) if len(full) else []
-    gate4 = (len(full_pubs) == 6 and len(full) > 0)
-
-    part1_gates = {
-        "GATE 1 — bn_panel.parquet exists, chronologically sorted, schema exact": gate1,
-        "GATE 2 — publisher shares within 33.3% ± 2pp in EVERY panel year": gate2,
-        "GATE 3 — <5% of (month × source) quota cells underfilled": gate3,
-        "GATE 4 — bn_full.parquet exists, 6 publishers, 2014-06..2020-12": gate4,
-    }
-    part1_details = {
-        "GATE 1 — bn_panel.parquet exists, chronologically sorted, schema exact":
-            f"schema match={schema_ok}, {len(panel):,} docs",
-        "GATE 2 — publisher shares within 33.3% ± 2pp in EVERY panel year":
-            "all years within tolerance" if gate2 else "a year exceeds ±2pp",
-        "GATE 3 — <5% of (month × source) quota cells underfilled":
-            f"{underfill_pct:.1f}% underfilled",
-        "GATE 4 — bn_full.parquet exists, 6 publishers, 2014-06..2020-12":
-            f"{len(full_pubs)} publishers: {full_pubs}",
-    }
-
-    # Placeholder for Part 2 (filled by src/probe_ccnews.py).
-    rep.w("## PART 2 — CC-News volume probe")
-    rep.w()
-    rep.w("_Not yet run. Execute:_")
-    rep.w("```")
-    rep.w("python src/probe_ccnews.py --langs hi,ar,uk --years 2016-2024 "
-          "--max-rows-per-year 200000")
-    rep.w("```")
-    rep.w("_It will replace this section and finalise the STATUS block below._")
-    rep.w()
+    k4 = (f"GATE 4 — {lang}_full.parquet exists, {n_full_pubs} publishers, "
+          f"{full_start}..{full_end}")
+    part1_gates[k4] = (len(full_pubs) == n_full_pubs and len(full) > 0)
+    part1_details[k4] = f"{len(full_pubs)} publishers"
 
     # ---- STATUS -----------------------------------------------------------
     rep.w("## STATUS")
@@ -561,19 +844,13 @@ def main():
     for k, v in part1_gates.items():
         rep.w(f"{k}:   {'PASS' if v else 'FAIL'}   ({part1_details[k]})")
     rep.w("")
-    rep.w("PART 2")
-    rep.w("GATE 5 — hi: top-3 domains each >=15K over >=36 clean months:   PENDING (run probe)")
-    rep.w("GATE 6 — ar: same condition:                                    PENDING (run probe)")
-    rep.w("GATE 7 — uk: same condition:                                    PENDING (run probe)")
-    rep.w("")
-    all1 = all(part1_gates.values())
-    verdict = ("PROCEED WITH CAVEATS" if all1 else "BLOCKED") + " (Part 2 pending)"
+    verdict = "PROCEED WITH CAVEATS" if all(part1_gates.values()) else "BLOCKED"
     rep.w(f"VERDICT: {verdict}")
     rep.w("Blockers:")
     for b in blockers:
         rep.w(f"  - {b}")
     if not blockers:
-        rep.w("  - none (Part 1)")
+        rep.w("  - none")
     rep.w("Surprises worth a human decision:")
     for s in surprises:
         rep.w(f"  - {s}")
@@ -585,9 +862,9 @@ def main():
     with open(report_path, "w", encoding="utf-8") as fh:
         fh.write(rep.text())
 
-    # Hand off Part-1 gate results so probe_ccnews.py can build a combined verdict.
+    # Hand off Part-1 gate results (per language) for downstream combined verdicts.
     if not demo:
-        with open("reports/.t2_part1_gates.json", "w") as fh:
+        with open(f"reports/.t2_part1_gates_{lang}.json", "w") as fh:
             json.dump({"gates": part1_gates, "details": part1_details,
                        "surprises": surprises, "blockers": blockers}, fh, indent=2)
 

@@ -8,6 +8,9 @@ prepared parquet. Stream 0 is the identity (the real chronological order); strea
 false-alarm-rate calibration. Because fertility is invariant to stream order, these
 index arrays are all we need — we never re-materialise the documents.
 
+Streams are auto-discovered: every parquet in data/interim/ (except *_demo files)
+gets its own permutation .npz.
+
 Usage:
     python src/streams.py --params params.yaml
     python src/streams.py --demo        # small, fast smoke test
@@ -16,6 +19,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import os
 import sys
@@ -24,7 +28,8 @@ import numpy as np
 import pyarrow.parquet as pq
 import yaml
 
-STREAMS = ["bn_panel", "bn_full"]
+STREAMS = sorted(os.path.splitext(os.path.basename(p))[0]
+                 for p in glob.glob("data/interim/*.parquet"))
 
 
 def log(msg: str) -> None:
@@ -85,7 +90,15 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     meta = {"num_shuffles": num_shuffles, "streams": {}}
 
-    for stream in STREAMS:
+    # Skip the *_demo parquets that prepare.py --demo writes, so they never
+    # get permutation files of their own.
+    streams = [s for s in STREAMS if not s.endswith("_demo")]
+    if not streams:
+        log("No parquet files found in data/interim/ — run prepare.py first.")
+        return 1
+    log(f"Discovered streams: {streams}")
+
+    for stream in streams:
         parquet = f"data/interim/{stream}.parquet"
         if not os.path.exists(parquet):
             log(f"  SKIP {stream}: {parquet} not found")

@@ -12,6 +12,17 @@ bn:
   panel_start: "2016-01"
   panel_end: "2020-12"
 
+ns:
+  loader: newssumm_csv
+  raw_dir: data/raw/NewsSumm/Processed/NewsSumm_processed.xlsx
+  full_start: "2000-01"
+  full_end: "2025-12"
+  n_full_publishers: 36
+  suggest_k: 3            # optional, defaults shown
+  suggest_min_cell: 100
+  suggest_top_n: 10
+  fertility_range: [1.0, 12.0]
+
 window:
   words_per_window: 2000
   calibration_fraction: 0.10   # legacy (T3); superseded by the split epoch below
