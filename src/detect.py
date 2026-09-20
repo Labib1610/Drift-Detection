@@ -10,6 +10,11 @@ the real stream — which is the anti-leakage discipline the whole comparison re
 
 Ground truth is exogenous: Bangladesh's first COVID-19 cases, 2020-03-08 (t*).
 
+Language handling (--lang, default bn): the stream is {lang}_panel; changepoints come
+from P["changepoints"][lang] if that is a dict keyed by language, else the flat list
+(bn legacy). For non-bn languages every output file/report/figure gets an `_{lang}`
+tag so bn artifacts are never overwritten.
+
 Parts:
   1. Redundancy test  — is S7 just a rescaling of S4?
   2. Sign anomaly     — why does S1 fall for XLM-R/BLOOM but rise for Llama/Qwen?
@@ -18,6 +23,7 @@ Parts:
 
 Usage:
     python src/detect.py --params params.yaml
+    python src/detect.py --lang ns --params params.yaml
     python src/detect.py --demo
 """
 
@@ -45,10 +51,37 @@ import icu
 WIN_DIR = "features/windows"
 RES_DIR = "results"
 FIG_DIR = "reports/figs"
-STREAM = "bn_panel"
+STREAM = "bn_panel"   # overwritten by _configure(); bn default = old behaviour
+LANG = "bn"
+TAG = ""              # "" for bn, "_<lang>" otherwise, so bn artifact names never change
 SIG_Z = {"S1": "z_S1", "S1c": "z_S1c", "S3": "z_S3", "S4": "z_S4", "S7": "z_S7"}
 _ICU_BI = icu.BreakIterator.createWordInstance(icu.Locale("bn"))
 _LATIN_DIGIT = re.compile(r"[A-Za-z0-9]")
+
+
+def _configure(lang):
+    global STREAM, LANG, TAG
+    LANG = lang
+    TAG = "" if lang == "bn" else f"_{lang}"
+    STREAM = f"{lang}_panel"
+
+
+def rpath(path):
+    # reports/T5_report.md -> reports/T5_{lang}_report.md for non-bn languages
+    if LANG == "bn" or f"_{LANG}_" in path:
+        return path
+    return path.replace("_report", f"_{LANG}_report")
+
+
+def get_cps(P):
+    # changepoints may be a flat list (bn legacy) or a dict keyed by language
+    cp = P["changepoints"]
+    return cp[LANG] if isinstance(cp, dict) else cp
+
+
+def get_tstar(P):
+    v = P["detect"]["changepoint"]
+    return v[LANG] if isinstance(v, dict) else v
 
 
 def log(m):
@@ -172,7 +205,7 @@ def icu_words(text):
 
 def part2_covariates(vocab_frac, ref_frac, target_words, demo=False):
     """Window-level covariates for the real (chronological) stream."""
-    df = pd.read_parquet("data/interim/bn_panel.parquet", columns=["text", "n_words"])
+    df = pd.read_parquet(f"data/interim/{STREAM}.parquet", columns=["text", "n_words"])
     if demo:
         df = df.head(3000)
     texts = df["text"].tolist()
@@ -239,7 +272,9 @@ def main():
     ap.add_argument("--params", default="params.yaml")
     ap.add_argument("--report", default="reports/T5_report.md")
     ap.add_argument("--demo", action="store_true")
+    ap.add_argument("--lang", default="bn")
     args = ap.parse_args()
+    _configure(args.lang)
     t_start = time.time()
 
     P = yaml.safe_load(open(args.params))
@@ -250,7 +285,7 @@ def main():
     grid = sorted(float(d) for d in P["adwin"]["delta_grid"])
     target_far = float(P["adwin"]["target_far"])
     far_targets = [target_far] + [float(x) for x in P["adwin"]["far_sensitivity"]]
-    tstar = pd.Timestamp(P["detect"]["changepoint"])
+    tstar = pd.Timestamp(get_tstar(P))
     covid_days = int(P["detect"]["covid_window_days"])
     signals = list(P["detect"]["signals"])
     demo = args.demo
@@ -300,7 +335,7 @@ def main():
                                 "targets": picks}
             log(f"  {key}: delta*(1e-3)={picks[f'{target_far:g}']['delta']} "
                 f"far={picks[f'{target_far:g}']['far_achieved']}")
-    with open(f"{RES_DIR}/calibration.json", "w") as fh:
+    with open(f"{RES_DIR}/calibration{TAG}.json", "w") as fh:
         json.dump({"grid": grid, "far_targets": far_targets, "calibration": calibration},
                   fh, indent=2)
 
@@ -332,12 +367,12 @@ def main():
                     "alarm_dates": [str(pd.Timestamp(x).date()) for x in al_dates],
                 }
             detection[key] = per_target
-    with open(f"{RES_DIR}/detection_metrics.json", "w") as fh:
+    with open(f"{RES_DIR}/detection_metrics{TAG}.json", "w") as fh:
         json.dump(detection, fh, indent=2)
 
     # ---- PART 1: redundancy (real stream perm00, detection epoch) -------------
     log("PART 1: redundancy test ...")
-    zparams = json.load(open(f"{WIN_DIR}/zscore_params.json"))
+    zparams = json.load(open(f"{WIN_DIR}/zscore_params{TAG}.json"))
     redundancy = {}
     for n in tok_names:
         df0 = load_perm(slugs[n], 0, demo)
@@ -390,14 +425,14 @@ def main():
 
     # ---- PART 4: figures ------------------------------------------------------
     if not demo:
-        _fig_far(calibration, grid, target_far, signals, tok_names, f"{FIG_DIR}/T5_far_curves.png")
+        _fig_far(calibration, grid, target_far, signals, tok_names, f"{FIG_DIR}/T5_far_curves{TAG}.png")
         _fig_timeline(load_perm, slugs, tok_names, detection, tstar, vocab_frac, ref_frac,
-                      target_far, f"{FIG_DIR}/T5_detection_timeline.png")
+                      target_far, f"{FIG_DIR}/T5_detection_timeline{TAG}.png")
         _fig_redundancy(load_perm, slugs, tok_names, redundancy, vocab_frac, ref_frac,
-                        f"{FIG_DIR}/T5_redundancy.png")
+                        f"{FIG_DIR}/T5_redundancy{TAG}.png")
 
     # ---- report ---------------------------------------------------------------
-    _write_report(args.report if not demo else "reports/T5_report_demo.md", demo,
+    _write_report(rpath(args.report if not demo else "reports/T5_report_demo.md"), demo,
                   P, tok_names, signals, combos, grid, far_targets, target_far,
                   calibration, detection, redundancy, redundancy_verdict, redundant,
                   sign, cov_cols, best_cov, tstar, time.time() - t_start, null_perms)
@@ -504,11 +539,12 @@ def _write_report(path, demo, P, tok_names, signals, combos, grid, far_targets,
     w("")
     w(f"- Mode: {'DEMO' if demo else 'FULL'} · wall-clock {wall:.1f}s · "
       f"null streams: perms {null_perms[0]:02d}-{null_perms[-1]:02d}")
-    w("- Reproduce: `python src/detect.py --params params.yaml`")
+    w(f"- Language: `{LANG}` · stream: `{STREAM}`")
+    w(f"- Reproduce: `python src/detect.py --lang {LANG} --params params.yaml`")
     w("")
     w("**Anti-leakage:** every `delta*` is chosen using only the shuffled null streams "
       "(perms 01-10). The real stream (perm 00) is touched only *after* delta* is frozen "
-      "in `results/calibration.json`. delta* never sees real-stream data.")
+      f"in `results/calibration{TAG}.json`. delta* never sees real-stream data.")
     w("")
 
     # PART 1
@@ -766,9 +802,9 @@ def real_stream_delay(tok_slug, zcol, delta, event_date, vocab_frac, ref_frac):
 
 
 def build_doc_level(tok_names, vocab_frac, ref_frac, target_words, demo):
-    """One ICU pass over bn_panel; returns per-doc arrays for synthetic streams and
+    """One ICU pass over the panel; returns per-doc arrays for synthetic streams and
     the window-level covariate table for the real (identity-order) stream."""
-    df = pd.read_parquet("data/interim/bn_panel.parquet",
+    df = pd.read_parquet(f"data/interim/{STREAM}.parquet",
                          columns=["doc_id", "text", "date", "n_words"])
     if demo:
         df = df.head(4000)
@@ -798,9 +834,9 @@ def build_doc_level(tok_names, vocab_frac, ref_frac, target_words, demo):
     per_tok = {}
     for n in tok_names:
         s = slug(n)
-        f = pd.read_parquet(f"features/fertility/bn_panel__{s}.parquet")
+        f = pd.read_parquet(f"features/fertility/{STREAM}__{s}.parquet")
         f = f.set_index("doc_id").reindex(doc_ids)
-        tf = pd.read_parquet(f"features/type_fertility/{s}.parquet")
+        tf = pd.read_parquet(f"features/type_fertility/{s}{TAG}.parquet")
         lut = dict(zip(tf["type"].tolist(), tf["n_pieces"].tolist()))
         tp = np.array([lut.get(id_to_type[i], 1) for i in range(len(id_to_type))], float)
         per_tok[n] = {"n_tokens": f["n_tokens"].to_numpy(float),
@@ -982,8 +1018,9 @@ def run_t5b(P, tok_names, signals, calibration, grid, far_targets, target_far,
     w("")
     w(f"- Mode: {'DEMO' if demo else 'FULL'} · extends T5. delta grid {grid[0]:g}..{grid[-1]:g} "
       f"({len(grid)} points).")
+    w(f"- Language: `{LANG}` · stream: `{STREAM}`")
     w("- **Anti-leakage:** every delta* is frozen from the shuffled null streams (perms "
-      "01-10) in `results/calibration.json`, computed *before* any real or synthetic "
+      f"01-10) in `results/calibration{TAG}.json`, computed *before* any real or synthetic "
       "stream is scored. Synthetic streams are never used for calibration (that would be "
       "circular). The real stream (perm00) and synthetic streams are only *read* here.")
     w("")
@@ -1200,7 +1237,7 @@ def run_t5b(P, tok_names, signals, calibration, grid, far_targets, target_far,
 
     # ---- Problem 3b: real changepoints ------------------------------------
     log("T5b: real changepoints ...")
-    cps = P["changepoints"]
+    cps = get_cps(P)
     w("## Problem 3b — multiple real changepoints")
     w("")
     w(f"All {len(cps)} candidate dates verified against cited sources (see `params.yaml`):")
@@ -1406,7 +1443,7 @@ def run_t5b(P, tok_names, signals, calibration, grid, far_targets, target_far,
         w("  - none")
     w("```")
 
-    path = "reports/T5b_report_demo.md" if demo else "reports/T5b_report.md"
+    path = rpath("reports/T5b_report_demo.md" if demo else "reports/T5b_report.md")
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(W) + "\n")
     log(f"T5b report written to {path}. Total wall-clock {time.time()-t_start:.1f}s")
@@ -1428,7 +1465,7 @@ def _fig_t5b_far(calibration, grid, target_far, signals, tok_names):
     ax.set_xlabel("ADWIN delta (to 0.99)"); ax.set_ylabel("FAR (per window)")
     ax.set_title("T5b FAR vs delta (extended grid) — does the constraint bind?")
     ax.legend(fontsize=8)
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T5b_far_curves.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T5b_far_curves{TAG}.png", dpi=110); plt.close(fig)
 
 
 def _fig_t5b_power(power, intensities, signals):
@@ -1439,7 +1476,7 @@ def _fig_t5b_power(power, intensities, signals):
     ax.set_xlabel("drift intensity p"); ax.set_ylabel("detection power")
     ax.set_ylim(-0.02, 1.02); ax.set_title("T5b detection power vs drift intensity")
     ax.legend()
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T5b_power_curves.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T5b_power_curves{TAG}.png", dpi=110); plt.close(fig)
 
 
 def _fig_t5b_delay(delaydist, intensities, signals, seed):
@@ -1455,7 +1492,7 @@ def _fig_t5b_delay(delaydist, intensities, signals, seed):
     ax.set_xlabel("drift intensity p"); ax.set_ylabel("median detection delay (windows)")
     ax.set_title("T5b median delay vs intensity (95% bootstrap CI)")
     ax.legend()
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T5b_delay_vs_intensity.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T5b_delay_vs_intensity{TAG}.png", dpi=110); plt.close(fig)
 
 
 def _fig_t5b_grid(delays_days, signals, tok_names):
@@ -1474,7 +1511,7 @@ def _fig_t5b_grid(delays_days, signals, tok_names):
                 ax.text(j, i, f"{M[i,j]:.0f}", ha="center", va="center", color="white", fontsize=8)
     fig.colorbar(im, label="delay (days) from t*")
     ax.set_title("T5b COVID detection delay grid (5 signals × 5 tokenizers)")
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T5b_delay_grid.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T5b_delay_grid{TAG}.png", dpi=110); plt.close(fig)
 
 
 # ===========================================================================
@@ -1507,16 +1544,16 @@ def _load_signal_series(kind):
     """Return (z, dates, nre, delta_at_1e-3) for S5/S6/S6p if artifacts exist, else None."""
     try:
         if kind == "S5":
-            p = f"features/embeddings/s5__perm00.parquet"
-            cal = json.load(open("results/embeddings_calibration.json"))["S5"]["targets"]
+            p = f"features/embeddings/s5{TAG}__perm00.parquet"
+            cal = json.load(open(f"results/embeddings_calibration{TAG}.json"))["S5"]["targets"]
             zc = "z_S5"
         elif kind == "S6":
-            p = "features/classifier/publisher_frozen__perm00.parquet"
-            cal = json.load(open("results/classifier_calibration.json"))["calibration"]["S6"]["targets"]
+            p = f"features/classifier/publisher_frozen{TAG}__perm00.parquet"
+            cal = json.load(open(f"results/classifier_calibration{TAG}.json"))["calibration"]["S6"]["targets"]
             zc = "z"
         elif kind == "S6p":
-            p = "features/classifier/publisher_preq__perm00.parquet"
-            cal = json.load(open("results/classifier_calibration.json"))["calibration"]["S6p"]["targets"]
+            p = f"features/classifier/publisher_preq{TAG}__perm00.parquet"
+            cal = json.load(open(f"results/classifier_calibration{TAG}.json"))["calibration"]["S6p"]["targets"]
             zc = "z"
         else:
             return None
@@ -1541,8 +1578,8 @@ def run_t6(P, tok_names, signals, calibration, far_targets, target_far,
     W = []; w = W.append
     w("# TASK 6 — control arm, sign anomaly, supervised & MMD baselines, lead time")
     w("")
-    w(f"- Mode: {'DEMO' if demo else 'FULL'}. All detection uses delta* frozen in "
-      "`results/calibration.json` / classifier & embeddings calibration — none re-tuned.")
+    w(f"- Mode: {'DEMO' if demo else 'FULL'} · language `{LANG}`. All detection uses delta* frozen in "
+      "`results/calibration*.json` / classifier & embeddings calibration — none re-tuned.")
     w("")
 
     # ---- Part 1: p=0 control arm -----------------------------------------
@@ -1667,7 +1704,7 @@ def run_t6(P, tok_names, signals, calibration, far_targets, target_far,
 
     # ---- Part 5: lead time over S6 ---------------------------------------
     log("T6: lead time over S6 ...")
-    cps = P["changepoints"]
+    cps = get_cps(P)
     s5 = _load_signal_series("S5")
     s6 = _load_signal_series("S6")
     s6p = _load_signal_series("S6p")
@@ -1770,11 +1807,11 @@ def run_t6(P, tok_names, signals, calibration, far_targets, target_far,
     g1 = all(np.isfinite(power0[s]) for s in signals)
     g2 = all_close
     # gate 3/4 depend on the sub-jobs
-    g3 = os.path.exists("results/classifier_metrics.json")
-    s5stat = json.load(open("results/embeddings_status.json")) if os.path.exists("results/embeddings_status.json") else {}
+    g3 = os.path.exists(f"results/classifier_metrics{TAG}.json")
+    s5stat = json.load(open(f"results/embeddings_status{TAG}.json")) if os.path.exists(f"results/embeddings_status{TAG}.json") else {}
     g4 = (s5stat.get("status") == "ok")
     g5 = (s6 is not None)
-    metrics6 = json.load(open("results/classifier_metrics.json")) if g3 else {}
+    metrics6 = json.load(open(f"results/classifier_metrics{TAG}.json")) if g3 else {}
 
     surprises, blockers = [], []
     if not g4:
@@ -1814,7 +1851,7 @@ def run_t6(P, tok_names, signals, calibration, far_targets, target_far,
     if g3:
         pub = metrics6.get("publisher", {})
         w(f"    frozen publisher accuracy: ref={pub.get('ref_accuracy', float('nan')):.3f}, "
-          f"per year={ {y: round(a,3) for y,a in pub.get('year_accuracy', {}).items()} }")
+          f"per year={ {y: round(a,3) for y, a in pub.get('year_accuracy', {}).items()} }")
         w(f"    does frozen-model error rise monotonically?  {'YES' if pub.get('frozen_error_monotone_rising') else 'NO'}")
     else:
         w("    (classifier not run)")
@@ -1847,7 +1884,7 @@ def run_t6(P, tok_names, signals, calibration, far_targets, target_far,
         w("  - none")
     w("```")
 
-    path = "reports/T6_report_demo.md" if demo else "reports/T6_report.md"
+    path = rpath("reports/T6_report_demo.md" if demo else "reports/T6_report.md")
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(W) + "\n")
     log(f"T6 report written to {path}. Total wall-clock {time.time()-t_start:.1f}s")
@@ -1861,7 +1898,7 @@ def _fig_t6_excess(power, power0, intensities, signals):
     ax.set_xlabel("drift intensity p"); ax.set_ylabel("excess power = power(p) − power(0)")
     ax.set_title("T6 excess detection power (floor-corrected)")
     ax.legend()
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T6_excess_power.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T6_excess_power{TAG}.png", dpi=110); plt.close(fig)
 
 
 def _fig_t6_decile(decomp, tok_names):
@@ -1878,7 +1915,7 @@ def _fig_t6_decile(decomp, tok_names):
     ax.set_xticks(x); ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=8)
     ax.set_ylabel("ΔS1 contribution"); ax.set_title("T6 decile decomposition of ΔS1 (ref→2020)")
     ax.legend()
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T6_decile_decomposition.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T6_decile_decomposition{TAG}.png", dpi=110); plt.close(fig)
 
 
 def _fig_t6_leadtime(rows, hdr, cps):
@@ -1898,7 +1935,7 @@ def _fig_t6_leadtime(rows, hdr, cps):
     ax.set_xticks(x + 0.3); ax.set_xticklabels([r[0] for r in rows], rotation=30, ha="right", fontsize=7)
     ax.set_ylabel("lead over S6 (days)"); ax.set_title("T6 lead time over supervised S6, per event")
     ax.legend(fontsize=8, ncol=3)
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T6_leadtime.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T6_leadtime{TAG}.png", dpi=110); plt.close(fig)
 
 
 def _fig_t6_all_signals(tok_names, cps, s5, s6, vf, rf):
@@ -1919,7 +1956,7 @@ def _fig_t6_all_signals(tok_names, cps, s5, s6, vf, rf):
     ax.set_ylim(-3, 3); ax.set_ylabel("z (rolling median)"); ax.set_xlabel("median window date")
     ax.set_title("T6 all signals over 2016-2020 (7 events marked)")
     ax.legend(fontsize=8, ncol=3)
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T6_all_signals.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T6_all_signals{TAG}.png", dpi=110); plt.close(fig)
 
 
 # ===========================================================================
@@ -1976,12 +2013,12 @@ def _count_within(events, alarm_sets, win=30):
 def run_t7(P, tok_names, signals, calibration, target_far, vocab_frac, ref_frac,
            target_words, demo, t_start, t5b):
     log("T7: alarm census + permutation test ...")
-    cps = P["changepoints"]
+    cps = get_cps(P)
     event_days = np.array([(pd.Timestamp(c["date"]).value // 86400_000_000_000) for c in cps], np.int64)
     W = []; w = W.append
     w("# TASK 7 — is anything actually detecting anything?")
     w("")
-    w("- Uses only the frozen delta* in `results/calibration.json` (+ classifier/embeddings "
+    w(f"- Language `{LANG}`. Uses only the frozen delta* in `results/calibration{TAG}.json` (+ classifier/embeddings "
       "calibration). No re-tuning, no new signals. Permutation seed = 42.")
     w("")
 
@@ -2030,10 +2067,10 @@ def run_t7(P, tok_names, signals, calibration, target_far, vocab_frac, ref_frac,
         dts = pd.to_datetime(np.asarray(dates)[nre:])
         span_days = (dts.max() - dts.min()).days
         if kind == "S5":
-            far = json.load(open("results/embeddings_calibration.json"))["S5"]["targets"][f"{target_far:g}"].get("far")
+            far = json.load(open(f"results/embeddings_calibration{TAG}.json"))["S5"]["targets"][f"{target_far:g}"].get("far")
         else:
             keymap = {"S6": "S6", "S6p": "S6p"}
-            far = json.load(open("results/classifier_calibration.json"))["calibration"][keymap[kind]]["targets"][f"{target_far:g}"].get("far")
+            far = json.load(open(f"results/classifier_calibration{TAG}.json"))["calibration"][keymap[kind]]["targets"][f"{target_far:g}"].get("far")
         A = int(a.size)
         rate = 1000 * A / ndet if ndet else 0
         interval = span_days / A if A else float("inf")
@@ -2292,7 +2329,7 @@ def run_t7(P, tok_names, signals, calibration, target_far, vocab_frac, ref_frac,
         w("  - none")
     w("```")
 
-    path = "reports/T7_report_demo.md" if demo else "reports/T7_report.md"
+    path = rpath("reports/T7_report_demo.md" if demo else "reports/T7_report.md")
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(W) + "\n")
     log(f"T7 report written to {path}. Total wall-clock {time.time()-t_start:.1f}s")
@@ -2332,7 +2369,7 @@ def _fig_t7_census(alarm_sets, cps, tok_names, det_span):
     ax.set_yticks(range(len(rows))); ax.set_yticklabels(rows)
     ax.set_ylim(-0.5, len(rows) - 0.5)
     ax.set_xlabel("date"); ax.set_title("T7 alarm census: alarm positions per signal, 7 events marked (red)")
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T7_alarm_census.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T7_alarm_census{TAG}.png", dpi=110); plt.close(fig)
 
 
 # ===========================================================================
@@ -2346,14 +2383,14 @@ def run_t8(P, tok_names, signals, calibration, target_far, vocab_frac, ref_frac,
     intens = list(t5b["intensities"])
     alarm_sets = t7["alarm_sets"]; thresholds = t7["thresholds"]
     event_days = t7["event_days"]; det_span = t7["det_span"]; excess_ci = t7["excess_ci"]
-    cps = P["changepoints"]
+    cps = get_cps(P)
     fert_sigs = ["S1", "S1c", "S3", "S4", "S7"]
     resp_windows = 420  # ~60 days at ~7 windows/day
     boot = np.random.default_rng(42)
     W = []; w = W.append
     w("# TASK 8 — the sensitivity floor")
     w("")
-    w("- Frozen delta* throughout; no re-calibration. Seeds: synthetic base 42, "
+    w(f"- Language `{LANG}`. Frozen delta* throughout; no re-calibration. Seeds: synthetic base 42, "
       "permutation 42, bootstrap 42.")
     w("")
 
@@ -2711,7 +2748,7 @@ def run_t8(P, tok_names, signals, calibration, target_far, vocab_frac, ref_frac,
         w("  - none")
     w("```")
 
-    path = "reports/T8_report_demo.md" if demo else "reports/T8_report.md"
+    path = rpath("reports/T8_report_demo.md" if demo else "reports/T8_report.md")
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(W) + "\n")
     log(f"T8 report written to {path}. Total wall-clock {time.time()-t_start:.1f}s")
@@ -2740,7 +2777,7 @@ def _fig_t8_floor(excess_ci, intens, fert_sigs, thresholds, peff_store, cps):
     ax.set_ylabel("excess detection power")
     ax.set_title("T8 sensitivity floor: real events sit left of where detectors work")
     ax.legend()
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T8_sensitivity_floor.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T8_sensitivity_floor{TAG}.png", dpi=110); plt.close(fig)
 
 
 def _fig_t8_response(p_list, Rmean, Rci, fert_sigs, cps, R_obs):
@@ -2753,7 +2790,7 @@ def _fig_t8_response(p_list, Rmean, Rci, fert_sigs, cps, R_obs):
     ax.set_xlabel("synthetic mixing rate p"); ax.set_ylabel("response R = mean z(post−pre W*)")
     ax.set_title("T8 response calibration curve R(p) per signal")
     ax.legend()
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T8_response_curve.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T8_response_curve{TAG}.png", dpi=110); plt.close(fig)
 
 
 def _fig_t8_power(power_curves, qs):
@@ -2764,7 +2801,7 @@ def _fig_t8_power(power_curves, qs):
     ax.set_xlabel("injected clustering probability q"); ax.set_ylabel("permutation-test power")
     ax.set_ylim(-0.02, 1.02); ax.set_title("T8 permutation-test power vs injected clustering")
     ax.legend()
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T8_power_analysis.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T8_power_analysis{TAG}.png", dpi=110); plt.close(fig)
 
 
 # ===========================================================================
@@ -2778,11 +2815,11 @@ def run_t9(P, tok_names, signals, calibration, target_far, vocab_frac, ref_frac,
     doc_types = dl["doc_types"]; id_to_type = dl["id_to_type"]
     dates_ns = dl["dates_ns"]
     doc_days = (dates_ns // 86400_000_000_000).astype(np.int64)
-    cps = P["changepoints"]
+    cps = get_cps(P)
     W = []; w = W.append
     w("# TASK 9 — event footprint, measured properly")
     w("")
-    w("- Separates **news turnover** (what T8 mis-labelled as event footprint) from the "
+    w(f"- Language `{LANG}`. Separates **news turnover** (what T8 mis-labelled as event footprint) from the "
       "**event footprint** (event-specific seed terms). Frozen delta*, no re-calibration. "
       "Seeds: base 42.")
     w("")
@@ -3012,7 +3049,8 @@ def run_t9(P, tok_names, signals, calibration, target_far, vocab_frac, ref_frac,
       "60 random-date turnover distribution.")
     w("")
     # do S4/S7 COVID alarms survive at FAR 1e-4?
-    covid_e = pd.Timestamp("2020-03-08")
+    covid_e = pd.Timestamp(next((c["date"] for c in cps
+                                 if c["name"] == "covid_first_cases"), "2020-03-08"))
     survive = {}
     for s in ["S4", "S7"]:
         toks = [tok_names[0]] if s == "S4" else tok_names
@@ -3092,7 +3130,7 @@ def run_t9(P, tok_names, signals, calibration, target_far, vocab_frac, ref_frac,
         w("  - none")
     w("```")
 
-    path = "reports/T9_report_demo.md" if demo else "reports/T9_report.md"
+    path = rpath("reports/T9_report_demo.md" if demo else "reports/T9_report.md")
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(W) + "\n")
     log(f"T9 report written to {path}. Total wall-clock {time.time()-t_start:.1f}s")
@@ -3112,7 +3150,7 @@ def _fig_t9(fert, cps, evfp, delays):
         ax.set_xlabel("event footprint"); ax.set_title(s)
     axes[0].set_ylabel("detection delay (days)")
     fig.suptitle("T9 detection delay vs event footprint (per signal)")
-    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T9_footprint_vs_delay.png", dpi=110); plt.close(fig)
+    fig.tight_layout(); fig.savefig(f"{FIG_DIR}/T9_footprint_vs_delay{TAG}.png", dpi=110); plt.close(fig)
 
 
 if __name__ == "__main__":
