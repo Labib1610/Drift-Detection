@@ -2853,7 +2853,7 @@ def run_t9(P, tok_names, signals, calibration, target_far, vocab_frac, ref_frac,
         # substring produced (ভোট⊄আপভোট, নূর⊄অনূর্ধ্ব, সংসদ⊄অসংসদীয়).
         subs = []
         for s in seeds:
-            subs.extend(s.split())
+            subs.extend(str(s).split())
         ids, forms = set(), set()
         for tid, typ in enumerate(id_to_type):
             if typ is None:

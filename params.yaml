@@ -18,13 +18,13 @@ ns:
   full_start: "2000-01"
   full_end: "2025-12"
   n_full_publishers: 30
-  suggest_k: 6            # optional, defaults shown
+  suggest_k: 3            # optional, defaults shown
   suggest_min_cell: 30
   suggest_top_n: 10
   fertility_range: [1.0, 12.0]
-  panel_publishers: ["The Hindu", "The Times of India", "The Economic Times", "Indian Express", "Hindustan Times", "The Shillong Times"]
-  panel_start: "2016-01"
-  panel_end: "2025-12"
+  panel_publishers: ["The Hindu", "The Times of India", "Hindustan Times"]
+  panel_start: "2019-07"
+  panel_end: "2024-09"
 
 window:
   words_per_window: 2000
@@ -96,7 +96,7 @@ changepoints:
     - {name: sabarimala_verdict,       date: "2018-09-28", source: "Supreme Court of India — Indian Young Lawyers Assn v. State of Kerala, 28 Sep 2018", seeds: [sabarimala, ayyappa, devaswom, pandalam]}
     - {name: pulwama_attack,           date: "2019-02-14", source: "Reuters / BBC — CRPF convoy attack, Pulwama, 14 Feb 2019", seeds: [pulwama, balakot, crpf, jaish, awantipora]}
     - {name: lok_sabha_results,        date: "2019-05-23", source: "Election Commission of India — 2019 general election counting 23 May 2019", seeds: [mandate, vvpat, evm, nda]}
-    - {name: article_370_abrogation,   date: "2019-08-05", source: "Govt of India / Rajya Sabha — Article 370 abrogated 5 Aug 2019", seeds: [370, abrogation, abrogated, ladakh]}
+    - {name: article_370_abrogation,   date: "2019-08-05", source: "Govt of India / Rajya Sabha — Article 370 abrogated 5 Aug 2019", seeds: ["370", abrogation, abrogated, ladakh]}
     - {name: ayodhya_verdict,          date: "2019-11-09", source: "Supreme Court of India — Ayodhya title verdict 9 Nov 2019", seeds: [ayodhya, babri, janmabhoomi, masjid]}
     - {name: covid_first_cases,        date: "2020-01-30", source: "MoHFW / WHO — first COVID-19 case in India (Kerala) 30 Jan 2020", seeds: [coronavirus, covid, lockdown, quarantine, pandemic]}
 

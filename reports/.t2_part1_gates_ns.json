@@ -8,13 +8,13 @@
   },
   "details": {
     "GATE 0 \u2014 every panel_publishers name exists in the cleaned pool": "all found",
-    "GATE 1 \u2014 ns_panel.parquet exists, chronologically sorted, schema exact": "schema match=True, 76,074 docs",
+    "GATE 1 \u2014 ns_panel.parquet exists, chronologically sorted, schema exact": "schema match=True, 67,670 docs",
     "GATE 2 \u2014 publisher shares within 16.7% \u00b1 2pp in EVERY panel year": "a year exceeds \u00b12pp",
-    "GATE 3 \u2014 <5% of (month \u00d7 source) quota cells underfilled": "46.4% underfilled",
+    "GATE 3 \u2014 <5% of (month \u00d7 source) quota cells underfilled": "61.5% underfilled",
     "GATE 4 \u2014 ns_full.parquet exists, >= 30 publishers, 2000-01..2025-12": "33 publishers (target: >=30)"
   },
   "surprises": [
-    "46.4% of panel cells underfilled (> 5% threshold) \u2014 quota may need lowering.",
+    "61.5% of panel cells underfilled (> 5% threshold) \u2014 quota may need lowering.",
     "ns_full uses equal-per-month sampling (uniform across time); confirm this is the intended reading of the brief."
   ],
   "blockers": []
