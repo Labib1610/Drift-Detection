@@ -138,7 +138,7 @@ def main():
     STREAM = f"{lang}_panel"
     tag = "" if lang == "bn" else f"_{lang}"
 
-    P = yaml.safe_load(open(args.params))
+    P = yaml.safe_load(open(args.params, encoding="utf-8"))
     nf = P["classifier"]["n_features"]
     lr = P["classifier"]["learning_rate"]
     targets = P["classifier"]["targets"]

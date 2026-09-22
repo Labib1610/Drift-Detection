@@ -284,7 +284,7 @@ def main():
     tag = lang_tag(lang)
 
     t_start = time.time()
-    with open(args.params) as fh:
+    with open(args.params, encoding="utf-8")as fh:
         P = yaml.safe_load(fh)
     seed = P["seed"]
     np.random.seed(seed)

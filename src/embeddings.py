@@ -83,7 +83,7 @@ def main():
     STREAM = f"{lang}_panel"
     tag = "" if lang == "bn" else f"_{lang}"
 
-    P = yaml.safe_load(open(args.params))
+    P = yaml.safe_load(open(args.params, encoding="utf-8"))
     E = P["embeddings"]
     vf = P["window"]["vocab_fraction"]; rf = P["window"]["reference_fraction"]
     tw = P["window"]["words_per_window"]

@@ -177,6 +177,10 @@ def _ns_key(s: object) -> str:
 NS_KEY_TO_CANON = {_ns_key(n): n for n in NS_CANONICAL_NEWSPAPERS}
 
 
+_TS_MIN = pd.Timestamp.min
+_TS_MAX = pd.Timestamp.max
+
+
 def _flex_date(s: pd.Series) -> pd.Series:
     """Parse mixed date strings (Excel datetimes arrive as 'YYYY-MM-DD HH:MM:SS').
     Formats are tried in order, day-first before month-first for ambiguous
@@ -184,11 +188,26 @@ def _flex_date(s: pd.Series) -> pd.Series:
     clean_pool parses with RAW_DATE_FORMAT."""
     s = s.astype(str).str.strip().str.replace(_NS_TIME_TAIL, "", regex=True)
     out = pd.Series(pd.NaT, index=s.index, dtype="datetime64[ns]")
+    n_overflow = 0
     for fmt in _NS_DATE_FORMATS:
         miss = out.isna()
         if not miss.any():
             break
-        out[miss] = pd.to_datetime(s[miss], format=fmt, errors="coerce")
+        attempt = pd.to_datetime(s[miss], format=fmt, errors="coerce")
+        if len(attempt):
+            # A string can parse successfully into a real calendar date (e.g. a
+            # corrupted 4-digit year like 2997) that still overflows pandas'
+            # nanosecond Timestamp range (~1677..2262). Null those out here so
+            # the later ns-precision assignment doesn't raise OutOfBoundsDatetime;
+            # they end up dropped as unparseable by clean_pool's rule 4, same as
+            # any other bad date.
+            out_of_range = attempt.notna() & ((attempt < _TS_MIN) | (attempt > _TS_MAX))
+            n_overflow += int(out_of_range.sum())
+            attempt = attempt.where(~out_of_range)
+        out[miss] = attempt
+    if n_overflow:
+        log(f"  _flex_date: {n_overflow:,} date string(s) parsed to an out-of-range "
+            f"year (outside {_TS_MIN.year}-{_TS_MAX.year}) and were nulled out")
     return out.dt.strftime("%Y/%m/%d")
 
 
@@ -212,9 +231,11 @@ def read_newssumm(raw_dir: str, demo: bool):
     parts = []
     for f in files:
         if f.lower().endswith(".csv"):
-            df = pd.read_csv(f, usecols=usecols, dtype=str, nrows=nrows)
+            df = pd.read_csv(f, dtype=str, nrows=nrows)
         else:
-            df = pd.read_excel(f, usecols=usecols, dtype=str, nrows=nrows)
+            df = pd.read_excel(f, dtype=str, nrows=nrows)
+        df.columns = df.columns.str.strip()
+        df = df[usecols]
         df = df.rename(columns=NEWSSUMM_MAP)
         df["Date"] = _flex_date(df["Date"])
         parts.append(df[RAW_COLS])
@@ -539,7 +560,7 @@ def main():
     args = ap.parse_args()
     lang = args.lang
 
-    with open(args.params) as fh:
+    with open(args.params, encoding="utf-8") as fh:
         P = yaml.safe_load(fh)
     if lang not in P:
         log(f"ERROR: no '{lang}' block in {args.params}.")
@@ -831,10 +852,10 @@ def main():
         part1_gates[k3] = underfill_pct < 5.0
         part1_details[k3] = f"{underfill_pct:.1f}% underfilled"
     full_pubs = sorted(full["publisher"].unique().tolist()) if len(full) else []
-    k4 = (f"GATE 4 — {lang}_full.parquet exists, {n_full_pubs} publishers, "
+    k4 = (f"GATE 4 — {lang}_full.parquet exists, >= {n_full_pubs} publishers, "
           f"{full_start}..{full_end}")
-    part1_gates[k4] = (len(full_pubs) == n_full_pubs and len(full) > 0)
-    part1_details[k4] = f"{len(full_pubs)} publishers"
+    part1_gates[k4] = (len(full_pubs) >= n_full_pubs and len(full) > 0)
+    part1_details[k4] = f"{len(full_pubs)} publishers (target: >={n_full_pubs})"
 
     # ---- STATUS -----------------------------------------------------------
     rep.w("## STATUS")

@@ -277,7 +277,7 @@ def main():
     _configure(args.lang)
     t_start = time.time()
 
-    P = yaml.safe_load(open(args.params))
+    P = yaml.safe_load(open(args.params, encoding="utf-8"))
     tok_names = list(P["tokenizers"])
     vocab_frac = P["window"]["vocab_fraction"]
     ref_frac = P["window"]["reference_fraction"]

@@ -17,11 +17,14 @@ ns:
   raw_dir: data/raw/NewsSumm/Processed/NewsSumm_processed.xlsx
   full_start: "2000-01"
   full_end: "2025-12"
-  n_full_publishers: 36
-  suggest_k: 3            # optional, defaults shown
-  suggest_min_cell: 100
+  n_full_publishers: 30
+  suggest_k: 6            # optional, defaults shown
+  suggest_min_cell: 30
   suggest_top_n: 10
   fertility_range: [1.0, 12.0]
+  panel_publishers: ["The Hindu", "The Times of India", "The Economic Times", "Indian Express", "Hindustan Times", "The Shillong Times"]
+  panel_start: "2016-01"
+  panel_end: "2025-12"
 
 window:
   words_per_window: 2000

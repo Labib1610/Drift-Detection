@@ -82,7 +82,7 @@ def main():
     ap.add_argument("--demo", action="store_true")
     args = ap.parse_args()
 
-    with open(args.params) as fh:
+    with open(args.params, encoding="utf-8") as fh:
         P = yaml.safe_load(fh)
     num_shuffles = P["streams"]["num_shuffles"]
 
