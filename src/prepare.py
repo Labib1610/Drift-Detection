@@ -327,6 +327,8 @@ def clean_pool(raw: pd.DataFrame, ledger: "OrderedDict[str, dict]"):
     record("4. unparseable/null date dropped", before, len(df))
 
     # Rule 5: canonicalise topic labels.
+    df["topic"] = df["topic"].fillna("unknown").astype(str).str.strip()
+    df.loc[df["topic"] == "", "topic"] = "unknown"
     topics_before = sorted(df["topic"].dropna().unique().tolist())
     df["topic"] = df["topic"].map(lambda x: TOPIC_CANON.get(x, x))
     topics_after = sorted(df["topic"].dropna().unique().tolist())

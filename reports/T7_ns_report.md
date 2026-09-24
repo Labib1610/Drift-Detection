@@ -6,30 +6,30 @@
 
 | signal | tokenizer | alarms A | rate/1000 win | mean interval (days) | null FAR | rate÷FAR |
 | --- | --- | --- | --- | --- | --- | --- |
-| S1 | bert-base-multilingual-cased | 28 | 3.16 | 112.4 | 9.8e-04 | 3.2 |
-| S1 | xlm-roberta-base | 37 | 4.18 | 85.1 | 9.6e-04 | 4.4 |
-| S1 | Llama-3.2-1B | 36 | 4.06 | 87.4 | 6.4e-04 | 6.3 |
-| S1 | Qwen2.5-0.5B | 41 | 4.63 | 76.8 | 9.9e-04 | 4.7 |
-| S1 | bloom-560m | 31 | 3.50 | 101.5 | 7.9e-04 | 4.4 |
-| S1c | bert-base-multilingual-cased | 35 | 3.95 | 89.9 | 6.9e-04 | 5.8 |
-| S1c | xlm-roberta-base | 37 | 4.18 | 85.1 | 9.6e-04 | 4.4 |
-| S1c | Llama-3.2-1B | 41 | 4.63 | 76.8 | 9.5e-04 | 4.9 |
-| S1c | Qwen2.5-0.5B | 38 | 4.29 | 82.8 | 9.3e-04 | 4.6 |
-| S1c | bloom-560m | 41 | 4.63 | 76.8 | 8.9e-04 | 5.2 |
-| S3 | bert-base-multilingual-cased | 32 | 3.61 | 98.3 | 9.8e-04 | 3.7 |
-| S3 | xlm-roberta-base | 34 | 3.84 | 92.6 | 9.1e-04 | 4.2 |
-| S3 | Llama-3.2-1B | 46 | 5.19 | 68.4 | 9.3e-04 | 5.6 |
-| S3 | Qwen2.5-0.5B | 46 | 5.19 | 68.4 | 9.9e-04 | 5.2 |
-| S3 | bloom-560m | 43 | 4.85 | 73.2 | 9.3e-04 | 5.2 |
-| S7 | bert-base-multilingual-cased | 35 | 3.95 | 89.9 | 9.1e-04 | 4.3 |
-| S7 | xlm-roberta-base | 37 | 4.18 | 85.1 | 9.1e-04 | 4.6 |
-| S7 | Llama-3.2-1B | 36 | 4.06 | 87.4 | 8.7e-04 | 4.7 |
-| S7 | Qwen2.5-0.5B | 29 | 3.27 | 108.5 | 8.8e-04 | 3.7 |
-| S7 | bloom-560m | 37 | 4.18 | 85.1 | 8.2e-04 | 5.1 |
-| S4 | (shared) | 19 | 2.14 | 165.6 | 8.2e-04 | 2.6 |
-| S5 | (single) | 23 | 2.60 | 136.8 | 9.8e-04 | 2.7 |
-| S6 | (single) | 57 | 6.43 | 55.2 | 9.0e-04 | 7.1 |
-| S6p | (single) | 31 | 3.50 | 101.5 | 7.7e-04 | 4.6 |
+| S1 | bert-base-multilingual-cased | 30 | 4.88 | 55.3 | 7.0e-04 | 7.0 |
+| S1 | xlm-roberta-base | 29 | 4.72 | 57.2 | 9.6e-04 | 4.9 |
+| S1 | Llama-3.2-1B | 29 | 4.72 | 57.2 | 9.8e-04 | 4.8 |
+| S1 | Qwen2.5-0.5B | 31 | 5.05 | 53.5 | 9.8e-04 | 5.2 |
+| S1 | bloom-560m | 26 | 4.23 | 63.8 | 7.8e-04 | 5.4 |
+| S1c | bert-base-multilingual-cased | 33 | 5.37 | 50.2 | 5.9e-04 | 9.2 |
+| S1c | xlm-roberta-base | 36 | 5.86 | 46.1 | 9.1e-04 | 6.4 |
+| S1c | Llama-3.2-1B | 37 | 6.02 | 44.8 | 8.5e-04 | 7.1 |
+| S1c | Qwen2.5-0.5B | 34 | 5.54 | 48.8 | 8.9e-04 | 6.2 |
+| S1c | bloom-560m | 39 | 6.35 | 42.5 | 9.4e-04 | 6.7 |
+| S3 | bert-base-multilingual-cased | 36 | 5.86 | 46.1 | 8.6e-04 | 6.8 |
+| S3 | xlm-roberta-base | 31 | 5.05 | 53.5 | 9.8e-04 | 5.2 |
+| S3 | Llama-3.2-1B | 32 | 5.21 | 51.8 | 7.8e-04 | 6.7 |
+| S3 | Qwen2.5-0.5B | 32 | 5.21 | 51.8 | 7.6e-04 | 6.8 |
+| S3 | bloom-560m | 27 | 4.40 | 61.4 | 7.6e-04 | 5.7 |
+| S7 | bert-base-multilingual-cased | 32 | 5.21 | 51.8 | 9.9e-04 | 5.2 |
+| S7 | xlm-roberta-base | 29 | 4.72 | 57.2 | 7.3e-04 | 6.4 |
+| S7 | Llama-3.2-1B | 32 | 5.21 | 51.8 | 9.3e-04 | 5.6 |
+| S7 | Qwen2.5-0.5B | 28 | 4.56 | 59.2 | 9.9e-04 | 4.6 |
+| S7 | bloom-560m | 32 | 5.21 | 51.8 | 9.8e-04 | 5.3 |
+| S4 | (shared) | 27 | 4.40 | 61.4 | 8.0e-04 | 5.5 |
+| S5 | (single) | 17 | 2.77 | 97.5 | 7.8e-04 | 3.5 |
+| S6 | (single) | 51 | 8.30 | 32.5 | 7.6e-04 | 10.9 |
+| S6p | (single) | 25 | 4.07 | 66.3 | 9.4e-04 | 4.3 |
 
 A ratio near 1 means the signal alarms no more on real data than on shuffled nulls (sees no temporal structure); a large ratio means it does — but says nothing yet about *where* the alarms fall (Part 2 settles that).
 
@@ -39,14 +39,14 @@ S6 first (the supervised reference). Observed = median days event→next alarm; 
 
 | signal | obs median delay | null median [2.5,97.5] | perm p | within±30d | detects events? |
 | --- | --- | --- | --- | --- | --- |
-| S6 | 30 | 31 [8,70] | 0.484 | 5/7 (p=0.748) | no |
-| S6p | 40 | 56 [17,129] | 0.284 | 5/7 (p=0.270) | no |
-| S5 | 40 | 83 [26,209] | 0.110 | 3/7 (p=0.537) | no |
-| S4 | 138 | 94 [32,198] | 0.815 | 0/7 (p=1.000) | no |
-| S7 | 83 | 46 [15,99] | 0.911 | 3/7 (p=0.976) | no |
-| S1 | 48 | 44 [18,87] | 0.580 | 4/7 (p=0.989) | no |
-| S1c | 60 | 43 [16,89] | 0.821 | 5/7 (p=0.940) | no |
-| S3 | 60 | 37 [15,74] | 0.905 | 5/7 (p=0.962) | no |
+| S6 | 349 | 20 [6,61] | 1.000 | 0/7 (p=1.000) | no |
+| S6p | 349 | 44 [14,98] | 1.000 | 0/7 (p=1.000) | no |
+| S5 | 314 | 62 [19,136] | 1.000 | 0/7 (p=1.000) | no |
+| S4 | 374 | 44 [11,119] | 1.000 | 0/7 (p=1.000) | no |
+| S7 | 340 | 35 [10,90] | 1.000 | 0/7 (p=1.000) | no |
+| S1 | 340 | 39 [14,111] | 1.000 | 0/7 (p=1.000) | no |
+| S1c | 323 | 33 [10,75] | 1.000 | 0/7 (p=1.000) | no |
+| S3 | 314 | 34 [11,80] | 1.000 | 0/7 (p=1.000) | no |
 
 **Does S6 pass its own permutation test? NO.** If the supervised reference does not detect the events either, T6's lead-time comparison was between two chance processes and the paper's claim must be reframed: the question becomes whether *anything* detects discrete events, not who leads whom.
 
@@ -58,47 +58,42 @@ Units = **20 replicates** (per-replicate power = mean over the 5 tokenizers). Po
 
 | p | signal | power(p) [95% CI] | excess = power(p)−power(0) [95% CI] |
 | --- | --- | --- | --- |
-| 0.05 | S1 | 0.67 [0.55,0.79] | +0.06 [-0.10,+0.22] |
-| 0.05 | S1c | 0.89 [0.82,0.95] | -0.00 [-0.10,+0.11] |
-| 0.05 | S3 | 0.74 [0.61,0.86] | -0.04 [-0.18,+0.10] |
-| 0.05 | S4 | 0.55 [0.35,0.75] | +0.00 [-0.30,+0.30] |
-| 0.05 | S7 | 0.70 [0.54,0.86] | -0.05 [-0.27,+0.17] |
-| 0.1 | S1 | 0.75 [0.65,0.85] | +0.14 [-0.02,+0.29] |
-| 0.1 | S1c | 0.84 [0.73,0.94] | -0.05 [-0.19,+0.08] |
-| 0.1 | S3 | 0.79 [0.69,0.88] | +0.01 [-0.12,+0.13] |
-| 0.1 | S4 | 0.40 [0.20,0.60] | -0.15 [-0.45,+0.15] |
-| 0.1 | S7 | 0.63 [0.46,0.80] | -0.12 [-0.34,+0.10] |
-| 0.25 | S1 | 0.61 [0.49,0.73] | +0.00 [-0.16,+0.17] |
-| 0.25 | S1c | 0.73 [0.59,0.86] | -0.16 [-0.33,+0.00] |
-| 0.25 | S3 | 0.62 [0.49,0.74] | -0.16 [-0.31,-0.02] |
-| 0.25 | S4 | 0.45 [0.25,0.65] | -0.10 [-0.40,+0.20] |
-| 0.25 | S7 | 0.66 [0.49,0.82] | -0.09 [-0.31,+0.13] |
-| 0.5 | S1 | 0.48 [0.36,0.61] | -0.13 [-0.31,+0.04] |
-| 0.5 | S1c | 0.75 [0.63,0.85] | -0.14 [-0.28,+0.00] |
-| 0.5 | S3 | 0.53 [0.38,0.68] | -0.25 [-0.42,-0.07] |
-| 0.5 | S4 | 0.65 [0.45,0.85] | +0.10 [-0.20,+0.40] |
-| 0.5 | S7 | 0.70 [0.52,0.86] | -0.05 [-0.27,+0.18] |
-| 1 | S1 | 0.76 [0.66,0.86] | +0.15 [-0.01,+0.31] |
-| 1 | S1c | 0.89 [0.82,0.95] | +0.00 [-0.11,+0.11] |
-| 1 | S3 | 0.87 [0.80,0.94] | +0.09 [-0.02,+0.20] |
-| 1 | S4 | 0.80 [0.60,0.95] | +0.25 [-0.05,+0.50] |
-| 1 | S7 | 0.94 [0.87,0.99] | +0.19 [+0.03,+0.35] |
+| 0.05 | S1 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.05 | S1c | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.05 | S3 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.05 | S4 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.05 | S7 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.1 | S1 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.1 | S1c | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.1 | S3 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.1 | S4 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.1 | S7 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.25 | S1 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.25 | S1c | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.25 | S3 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.25 | S4 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.25 | S7 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.5 | S1 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.5 | S1c | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.5 | S3 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.5 | S4 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.5 | S7 | nan [nan,nan] | +nan [+nan,+nan] |
+| 1 | S1 | nan [nan,nan] | +nan [+nan,+nan] |
+| 1 | S1c | nan [nan,nan] | +nan [+nan,+nan] |
+| 1 | S3 | nan [nan,nan] | +nan [+nan,+nan] |
+| 1 | S4 | nan [nan,nan] | +nan [+nan,+nan] |
+| 1 | S7 | nan [nan,nan] | +nan [+nan,+nan] |
 
 **S7 − S4 excess-power difference (replicate-level, 95% CI):**
 
 | p | S7−S4 excess [95% CI] | CI excludes 0? |
 | --- | --- | --- |
-| 0.05 | -0.05 [-0.35,+0.24] | no |
-| 0.1 | +0.03 [-0.27,+0.34] | no |
-| 0.25 | +0.01 [-0.29,+0.32] | no |
-| 0.5 | -0.15 [-0.48,+0.17] | no |
-| 1 | -0.06 [-0.37,+0.27] | no |
 
 Intensities where the S7−S4 excess-power CI excludes zero: **none**.
 
 ## Part 4 — S6 detrended (is it events or just the monotone slide?)
 
-z(S6) linear slope on the detection epoch = +5.70e-06/window. Alarm count **trended 57 → detrended 57**; permutation p **trended 0.484 → detrended 0.484**.
+z(S6) linear slope on the detection epoch = +9.59e-05/window. Alarm count **trended 51 → detrended 51**; permutation p **trended 1.000 → detrended 1.000**.
 
 
 ## STATUS
@@ -110,28 +105,28 @@ GATE 3 — bootstrap CIs on excess power, replicate-level:                      
 
 THE VERDICT ON DETECTION:
     signal | alarms A | rate/1000 | null FAR | ratio | median delay | perm p | detects?
-    S6   | A=57 | 6.43 | 9.0e-04 | 7.1 | 30d | p=0.484 | no
-    S6p  | A=31 | 3.50 | 7.7e-04 | 4.6 | 40d | p=0.284 | no
-    S5   | A=23 | 2.60 | 9.8e-04 | 2.7 | 40d | p=0.110 | no
-    S4   | A=19 | 2.14 | 8.2e-04 | 2.6 | 138d | p=0.815 | no
-    S7   | A=35 | 3.95 | 9.1e-04 | 4.3 | 83d | p=0.911 | no
-    S1   | A=28 | 3.16 | 9.8e-04 | 3.2 | 48d | p=0.580 | no
-    S1c  | A=35 | 3.95 | 6.9e-04 | 5.8 | 60d | p=0.821 | no
-    S3   | A=32 | 3.61 | 9.8e-04 | 3.7 | 60d | p=0.905 | no
+    S6   | A=51 | 8.30 | 7.6e-04 | 10.9 | 349d | p=1.000 | no
+    S6p  | A=25 | 4.07 | 9.4e-04 | 4.3 | 349d | p=1.000 | no
+    S5   | A=17 | 2.77 | 7.8e-04 | 3.5 | 314d | p=1.000 | no
+    S4   | A=27 | 4.40 | 8.0e-04 | 5.5 | 374d | p=1.000 | no
+    S7   | A=32 | 5.21 | 9.9e-04 | 5.2 | 340d | p=1.000 | no
+    S1   | A=30 | 4.88 | 7.0e-04 | 7.0 | 340d | p=1.000 | no
+    S1c  | A=33 | 5.37 | 5.9e-04 | 9.2 | 323d | p=1.000 | no
+    S3   | A=36 | 5.86 | 8.6e-04 | 6.8 | 314d | p=1.000 | no
 
     Does S6 pass its own permutation test?  NO
     Do ANY signals pass?  NONE
 
 THE POWER DIFFERENCE:
-    p=0.05: S7 excess -0.05[-0.27,+0.17], S4 excess +0.00[-0.30,+0.30]
-    p=0.1: S7 excess -0.12[-0.34,+0.10], S4 excess -0.15[-0.45,+0.15]
-    p=0.25: S7 excess -0.09[-0.31,+0.13], S4 excess -0.10[-0.40,+0.20]
-    p=0.5: S7 excess -0.05[-0.27,+0.18], S4 excess +0.10[-0.20,+0.40]
-    p=1: S7 excess +0.19[+0.03,+0.35], S4 excess +0.25[-0.05,+0.50]
+    p=0.05: S7 excess +nan[+nan,+nan], S4 excess +nan[+nan,+nan]
+    p=0.1: S7 excess +nan[+nan,+nan], S4 excess +nan[+nan,+nan]
+    p=0.25: S7 excess +nan[+nan,+nan], S4 excess +nan[+nan,+nan]
+    p=0.5: S7 excess +nan[+nan,+nan], S4 excess +nan[+nan,+nan]
+    p=1: S7 excess +nan[+nan,+nan], S4 excess +nan[+nan,+nan]
     intensities where S7−S4 excess CI excludes zero: none
 
 S6 DETRENDED:
-    trended A=57 p=0.484 → detrended A=57 p=0.484
+    trended A=51 p=1.000 → detrended A=51 p=1.000
 
 VERDICT: PROCEED WITH CAVEATS
 Blockers:
