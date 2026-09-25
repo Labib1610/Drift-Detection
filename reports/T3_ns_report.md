@@ -1,6 +1,6 @@
 # TASK 3 — Fertility signals (S1-S4) report
 
-- Mode: FULL · wall-clock 426.0s
+- Mode: FULL · wall-clock 353.3s
 - Language: `ns` · headline stream: `ns_panel`
 - Reproduce:
 ```
@@ -185,27 +185,27 @@ If S1 rises but S1b does not, late-period drift is compositional (topic mix); if
 
 | stage | seconds |
 | --- | --- |
-| load bert-base-multilingual-cased | 4.2 |
-| load xlm-roberta-base | 3.6 |
-| load meta-llama_Llama-3.2-1B | 2.3 |
-| load Qwen_Qwen2.5-0.5B | 1.8 |
-| load bigscience_bloom-560m | 2.7 |
+| load bert-base-multilingual-cased | 2.6 |
+| load xlm-roberta-base | 3.5 |
+| load meta-llama_Llama-3.2-1B | 2.1 |
+| load Qwen_Qwen2.5-0.5B | 1.7 |
+| load bigscience_bloom-560m | 2.6 |
 | ns_panel: ICU types | 5.7 |
-| ns_panel: tokenize bert-base-multilingual-cased | 13.9 |
-| ns_panel: tokenize xlm-roberta-base | 17.2 |
-| ns_panel: tokenize meta-llama_Llama-3.2-1B | 9.9 |
-| ns_panel: tokenize Qwen_Qwen2.5-0.5B | 11.4 |
-| ns_panel: tokenize bigscience_bloom-560m | 10.5 |
-| ns_panel: type-fertility | 10.7 |
-| ns_panel: total | 175.5 |
-| ns_full: ICU types | 10.5 |
-| ns_full: tokenize bert-base-multilingual-cased | 38.6 |
-| ns_full: tokenize xlm-roberta-base | 38.5 |
-| ns_full: tokenize meta-llama_Llama-3.2-1B | 30.4 |
-| ns_full: tokenize Qwen_Qwen2.5-0.5B | 32.0 |
-| ns_full: tokenize bigscience_bloom-560m | 31.5 |
-| ns_full: type-fertility | 19.2 |
-| ns_full: total | 233.6 |
+| ns_panel: tokenize bert-base-multilingual-cased | 16.5 |
+| ns_panel: tokenize xlm-roberta-base | 19.5 |
+| ns_panel: tokenize meta-llama_Llama-3.2-1B | 8.5 |
+| ns_panel: tokenize Qwen_Qwen2.5-0.5B | 9.7 |
+| ns_panel: tokenize bigscience_bloom-560m | 10.2 |
+| ns_panel: type-fertility | 9.0 |
+| ns_panel: total | 162.1 |
+| ns_full: ICU types | 10.6 |
+| ns_full: tokenize bert-base-multilingual-cased | 27.2 |
+| ns_full: tokenize xlm-roberta-base | 25.0 |
+| ns_full: tokenize meta-llama_Llama-3.2-1B | 23.5 |
+| ns_full: tokenize Qwen_Qwen2.5-0.5B | 25.2 |
+| ns_full: tokenize bigscience_bloom-560m | 23.8 |
+| ns_full: type-fertility | 14.6 |
+| ns_full: total | 177.0 |
 
 ## STATUS
 

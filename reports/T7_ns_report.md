@@ -39,14 +39,14 @@ S6 first (the supervised reference). Observed = median days event→next alarm; 
 
 | signal | obs median delay | null median [2.5,97.5] | perm p | within±30d | detects events? |
 | --- | --- | --- | --- | --- | --- |
-| S6 | 349 | 20 [6,61] | 1.000 | 0/7 (p=1.000) | no |
-| S6p | 349 | 44 [14,98] | 1.000 | 0/7 (p=1.000) | no |
-| S5 | 314 | 62 [19,136] | 1.000 | 0/7 (p=1.000) | no |
-| S4 | 374 | 44 [11,119] | 1.000 | 0/7 (p=1.000) | no |
-| S7 | 340 | 35 [10,90] | 1.000 | 0/7 (p=1.000) | no |
-| S1 | 340 | 39 [14,111] | 1.000 | 0/7 (p=1.000) | no |
-| S1c | 323 | 33 [10,75] | 1.000 | 0/7 (p=1.000) | no |
-| S3 | 314 | 34 [11,80] | 1.000 | 0/7 (p=1.000) | no |
+| S6 | 227 | 20 [6,61] | 1.000 | 0/7 (p=1.000) | no |
+| S6p | 227 | 44 [14,98] | 1.000 | 0/7 (p=1.000) | no |
+| S5 | 192 | 62 [19,136] | 1.000 | 0/7 (p=1.000) | no |
+| S4 | 252 | 44 [11,119] | 1.000 | 0/7 (p=1.000) | no |
+| S7 | 218 | 35 [10,90] | 1.000 | 0/7 (p=1.000) | no |
+| S1 | 218 | 39 [14,111] | 1.000 | 0/7 (p=1.000) | no |
+| S1c | 201 | 33 [10,75] | 1.000 | 0/7 (p=1.000) | no |
+| S3 | 192 | 34 [11,80] | 1.000 | 0/7 (p=1.000) | no |
 
 **Does S6 pass its own permutation test? NO.** If the supervised reference does not detect the events either, T6's lead-time comparison was between two chance processes and the paper's claim must be reframed: the question becomes whether *anything* detects discrete events, not who leads whom.
 
@@ -58,36 +58,41 @@ Units = **20 replicates** (per-replicate power = mean over the 5 tokenizers). Po
 
 | p | signal | power(p) [95% CI] | excess = power(p)−power(0) [95% CI] |
 | --- | --- | --- | --- |
-| 0.05 | S1 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.05 | S1c | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.05 | S3 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.05 | S4 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.05 | S7 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.1 | S1 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.1 | S1c | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.1 | S3 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.1 | S4 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.1 | S7 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.25 | S1 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.25 | S1c | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.25 | S3 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.25 | S4 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.25 | S7 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.5 | S1 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.5 | S1c | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.5 | S3 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.5 | S4 | nan [nan,nan] | +nan [+nan,+nan] |
-| 0.5 | S7 | nan [nan,nan] | +nan [+nan,+nan] |
-| 1 | S1 | nan [nan,nan] | +nan [+nan,+nan] |
-| 1 | S1c | nan [nan,nan] | +nan [+nan,+nan] |
-| 1 | S3 | nan [nan,nan] | +nan [+nan,+nan] |
-| 1 | S4 | nan [nan,nan] | +nan [+nan,+nan] |
-| 1 | S7 | nan [nan,nan] | +nan [+nan,+nan] |
+| 0.05 | S1 | 0.87 [0.76,0.96] | -0.03 [-0.16,+0.09] |
+| 0.05 | S1c | 0.90 [0.80,0.97] | +0.12 [-0.03,+0.28] |
+| 0.05 | S3 | 0.80 [0.68,0.91] | -0.05 [-0.19,+0.09] |
+| 0.05 | S4 | 1.00 [1.00,1.00] | +0.05 [+0.00,+0.15] |
+| 0.05 | S7 | 0.97 [0.92,1.00] | -0.02 [-0.08,+0.02] |
+| 0.1 | S1 | 0.95 [0.88,1.00] | +0.05 [-0.04,+0.13] |
+| 0.1 | S1c | 0.83 [0.73,0.91] | +0.05 [-0.10,+0.21] |
+| 0.1 | S3 | 0.89 [0.78,0.97] | +0.04 [-0.09,+0.16] |
+| 0.1 | S4 | 1.00 [1.00,1.00] | +0.05 [+0.00,+0.15] |
+| 0.1 | S7 | 1.00 [1.00,1.00] | +0.01 [+0.00,+0.03] |
+| 0.25 | S1 | 0.90 [0.80,0.98] | +0.00 [-0.12,+0.11] |
+| 0.25 | S1c | 0.85 [0.73,0.94] | +0.07 [-0.08,+0.23] |
+| 0.25 | S3 | 0.86 [0.74,0.96] | +0.01 [-0.13,+0.14] |
+| 0.25 | S4 | 1.00 [1.00,1.00] | +0.05 [+0.00,+0.15] |
+| 0.25 | S7 | 0.99 [0.97,1.00] | +0.00 [-0.03,+0.03] |
+| 0.5 | S1 | 0.90 [0.80,0.98] | +0.00 [-0.11,+0.10] |
+| 0.5 | S1c | 0.78 [0.66,0.89] | +0.00 [-0.16,+0.17] |
+| 0.5 | S3 | 0.86 [0.75,0.96] | +0.01 [-0.13,+0.14] |
+| 0.5 | S4 | 1.00 [1.00,1.00] | +0.05 [+0.00,+0.15] |
+| 0.5 | S7 | 1.00 [1.00,1.00] | +0.01 [+0.00,+0.03] |
+| 1 | S1 | 0.96 [0.91,1.00] | +0.06 [-0.01,+0.14] |
+| 1 | S1c | 0.83 [0.69,0.95] | +0.05 [-0.13,+0.23] |
+| 1 | S3 | 0.95 [0.89,1.00] | +0.10 [+0.00,+0.19] |
+| 1 | S4 | 1.00 [1.00,1.00] | +0.05 [+0.00,+0.15] |
+| 1 | S7 | 1.00 [1.00,1.00] | +0.01 [+0.00,+0.03] |
 
 **S7 − S4 excess-power difference (replicate-level, 95% CI):**
 
 | p | S7−S4 excess [95% CI] | CI excludes 0? |
 | --- | --- | --- |
+| 0.05 | -0.07 [-0.19,+0.01] | no |
+| 0.1 | -0.04 [-0.15,+0.02] | no |
+| 0.25 | -0.05 [-0.16,+0.02] | no |
+| 0.5 | -0.04 [-0.15,+0.02] | no |
+| 1 | -0.04 [-0.15,+0.03] | no |
 
 Intensities where the S7−S4 excess-power CI excludes zero: **none**.
 
@@ -105,24 +110,24 @@ GATE 3 — bootstrap CIs on excess power, replicate-level:                      
 
 THE VERDICT ON DETECTION:
     signal | alarms A | rate/1000 | null FAR | ratio | median delay | perm p | detects?
-    S6   | A=51 | 8.30 | 7.6e-04 | 10.9 | 349d | p=1.000 | no
-    S6p  | A=25 | 4.07 | 9.4e-04 | 4.3 | 349d | p=1.000 | no
-    S5   | A=17 | 2.77 | 7.8e-04 | 3.5 | 314d | p=1.000 | no
-    S4   | A=27 | 4.40 | 8.0e-04 | 5.5 | 374d | p=1.000 | no
-    S7   | A=32 | 5.21 | 9.9e-04 | 5.2 | 340d | p=1.000 | no
-    S1   | A=30 | 4.88 | 7.0e-04 | 7.0 | 340d | p=1.000 | no
-    S1c  | A=33 | 5.37 | 5.9e-04 | 9.2 | 323d | p=1.000 | no
-    S3   | A=36 | 5.86 | 8.6e-04 | 6.8 | 314d | p=1.000 | no
+    S6   | A=51 | 8.30 | 7.6e-04 | 10.9 | 227d | p=1.000 | no
+    S6p  | A=25 | 4.07 | 9.4e-04 | 4.3 | 227d | p=1.000 | no
+    S5   | A=17 | 2.77 | 7.8e-04 | 3.5 | 192d | p=1.000 | no
+    S4   | A=27 | 4.40 | 8.0e-04 | 5.5 | 252d | p=1.000 | no
+    S7   | A=32 | 5.21 | 9.9e-04 | 5.2 | 218d | p=1.000 | no
+    S1   | A=30 | 4.88 | 7.0e-04 | 7.0 | 218d | p=1.000 | no
+    S1c  | A=33 | 5.37 | 5.9e-04 | 9.2 | 201d | p=1.000 | no
+    S3   | A=36 | 5.86 | 8.6e-04 | 6.8 | 192d | p=1.000 | no
 
     Does S6 pass its own permutation test?  NO
     Do ANY signals pass?  NONE
 
 THE POWER DIFFERENCE:
-    p=0.05: S7 excess +nan[+nan,+nan], S4 excess +nan[+nan,+nan]
-    p=0.1: S7 excess +nan[+nan,+nan], S4 excess +nan[+nan,+nan]
-    p=0.25: S7 excess +nan[+nan,+nan], S4 excess +nan[+nan,+nan]
-    p=0.5: S7 excess +nan[+nan,+nan], S4 excess +nan[+nan,+nan]
-    p=1: S7 excess +nan[+nan,+nan], S4 excess +nan[+nan,+nan]
+    p=0.05: S7 excess -0.02[-0.08,+0.02], S4 excess +0.05[+0.00,+0.15]
+    p=0.1: S7 excess +0.01[+0.00,+0.03], S4 excess +0.05[+0.00,+0.15]
+    p=0.25: S7 excess +0.00[-0.03,+0.03], S4 excess +0.05[+0.00,+0.15]
+    p=0.5: S7 excess +0.01[+0.00,+0.03], S4 excess +0.05[+0.00,+0.15]
+    p=1: S7 excess +0.01[+0.00,+0.03], S4 excess +0.05[+0.00,+0.15]
     intensities where S7−S4 excess CI excludes zero: none
 
 S6 DETRENDED:

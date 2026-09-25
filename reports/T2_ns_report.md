@@ -1,6 +1,6 @@
 # TASK 2 — ns preparation report
 
-- Generated: 2026-09-24T18:43:58
+- Generated: 2026-09-25T16:02:17
 - Mode: FULL · loader `newssumm_csv`
 - Params: `params.yaml` · seed 42
 

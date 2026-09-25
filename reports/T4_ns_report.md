@@ -1,6 +1,6 @@
 # TASK 4 — Calibration fix, signal variants, dilution decomposition
 
-- Mode: FULL · wall-clock 428.3s
+- Mode: FULL · wall-clock 354.9s
 - Language: `ns` · headline stream: `ns_panel`
 - Reproduce: `python src/streams.py --params params.yaml && python src/fertility.py --lang ns --params params.yaml`
 

@@ -10,49 +10,40 @@ Calibration curve R(p) (mean [95% CI]):
 
 | signal | p=0 | p=0.05 | p=0.1 | p=0.25 | p=0.5 | p=1 | detection threshold |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| S1 | nan | nan | nan | nan | nan | nan | None |
-| S1c | nan | nan | nan | nan | nan | nan | None |
-| S3 | nan | nan | nan | nan | nan | nan | None |
-| S4 | nan | nan | nan | nan | nan | nan | None |
-| S7 | nan | nan | nan | nan | nan | nan | None |
+| S1 | 0.51 | 0.52 | 0.49 | 0.50 | 0.50 | 0.47 | None |
+| S1c | 0.19 | 0.25 | 0.21 | 0.21 | 0.21 | 0.18 | None |
+| S3 | 0.55 | 0.54 | 0.53 | 0.53 | 0.55 | 0.51 | 1.0 |
+| S4 | 2.75 | 2.84 | 2.82 | 2.78 | 2.78 | 2.89 | None |
+| S7 | 2.60 | 2.71 | 2.71 | 2.69 | 2.69 | 2.72 | None |
 
 **p_eff per event — S4** (detection threshold = None):
 
 | event | R_obs | p_eff [95% CI] | p_eff / threshold |
 | --- | --- | --- | --- |
-| gst_rollout | +nan | nan [nan,nan] | — |
-| sabarimala_verdict | +nan | nan [nan,nan] | — |
-| pulwama_attack | +nan | nan [nan,nan] | — |
 | lok_sabha_results | +nan | nan [nan,nan] | — |
-| article_370_abrogation | -0.00 | nan [nan,nan] | — |
-| ayodhya_verdict | +0.00 | nan [nan,nan] | — |
-| covid_first_cases | +2.09 | nan [nan,nan] | — |
+| article_370_abrogation | -0.00 | 0.000 [0.000,1.000] | — |
+| ayodhya_verdict | +0.00 | 0.000 [0.000,1.000] | — |
+| covid_first_cases | +2.09 | 0.000 [0.000,1.000] | — |
 
 **p_eff per event — S7** (detection threshold = None):
 
 | event | R_obs | p_eff [95% CI] | p_eff / threshold |
 | --- | --- | --- | --- |
-| gst_rollout | +nan | nan [nan,nan] | — |
-| sabarimala_verdict | +nan | nan [nan,nan] | — |
-| pulwama_attack | +nan | nan [nan,nan] | — |
 | lok_sabha_results | +nan | nan [nan,nan] | — |
-| article_370_abrogation | +0.00 | nan [nan,nan] | — |
-| ayodhya_verdict | +0.00 | nan [nan,nan] | — |
-| covid_first_cases | +2.03 | nan [nan,nan] | — |
+| article_370_abrogation | +0.00 | 0.050 [0.000,1.000] | — |
+| ayodhya_verdict | +0.00 | 0.050 [0.000,1.000] | — |
+| covid_first_cases | +2.03 | 0.050 [0.000,1.000] | — |
 
 **p_eff per event — S1** (detection threshold = None):
 
 | event | R_obs | p_eff [95% CI] | p_eff / threshold |
 | --- | --- | --- | --- |
-| gst_rollout | +nan | nan [nan,nan] | — |
-| sabarimala_verdict | +nan | nan [nan,nan] | — |
-| pulwama_attack | +nan | nan [nan,nan] | — |
 | lok_sabha_results | +nan | nan [nan,nan] | — |
-| article_370_abrogation | -0.43 | nan [nan,nan] | — |
-| ayodhya_verdict | -0.14 | nan [nan,nan] | — |
-| covid_first_cases | -0.20 | nan [nan,nan] | — |
+| article_370_abrogation | -0.43 | 1.000 [0.000,1.000] | — |
+| ayodhya_verdict | -0.14 | 1.000 [0.000,1.000] | — |
+| covid_first_cases | -0.20 | 1.000 [0.000,1.000] | — |
 
-R_obs fell below R(0) (p_eff≈0) in **0/21** event×signal cases.
+R_obs fell below R(0) (p_eff≈0) in **9/12** event×signal cases.
 
 ## Part 2 — pooled-alarm event test (every alarm contributes)
 
@@ -77,9 +68,9 @@ Inject an extra alarm within ±k days of each event with probability q, then re-
 
 | signal | k | q=0.2 | q=0.4 | q=0.6 | q=0.8 | q=1.0 | min q @80% |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| S4 | 15 | 0.01 | 0.02 | 0.10 | 0.23 | 0.41 | >1.0 |
-| S4 | 30 | 0.00 | 0.00 | 0.01 | 0.03 | 0.04 | >1.0 |
-| S7 | 15 | 0.00 | 0.00 | 0.01 | 0.04 | 0.08 | >1.0 |
+| S4 | 15 | 0.01 | 0.03 | 0.07 | 0.17 | 0.30 | >1.0 |
+| S4 | 30 | 0.01 | 0.01 | 0.01 | 0.05 | 0.10 | >1.0 |
+| S7 | 15 | 0.00 | 0.01 | 0.03 | 0.09 | 0.10 | >1.0 |
 | S7 | 30 | 0.00 | 0.00 | 0.00 | 0.00 | 0.01 | >1.0 |
 
 Minimum detectable effect (smallest q with ≥80% power): S4/k=15: >1.0, S4/k=30: >1.0, S7/k=15: >1.0, S7/k=30: >1.0. The test would have detected clustering of alarms within k days of at least that fraction of events with 80% probability; no such clustering is observed on the real stream.
@@ -87,12 +78,6 @@ Minimum detectable effect (smallest q with ≥80% power): S4/k=15: >1.0, S4/k=30
 ## Part 4 — direct event footprint (corroborating p_eff)
 
 For each event: the 20 word types most over-represented in the 30 days after vs the 30 days before (frequency ratio, min post-count 5), and the fraction of post-event documents containing at least one of them — a direct, assumption-free estimate of how much of the stream the event touched.
-
-**gst_rollout** (2017-07-01): insufficient documents in window.
-
-**sabarimala_verdict** (2018-09-28): insufficient documents in window.
-
-**pulwama_attack** (2019-02-14): insufficient documents in window.
 
 **lok_sabha_results** (2019-05-23): insufficient documents in window.
 
@@ -109,21 +94,24 @@ Corroboration — direct footprint vs S7 p_eff:
 
 | event | footprint (doc frac) | S7 p_eff | ratio |
 | --- | --- | --- | --- |
+| article_370_abrogation | 0.32 | 0.050 | 6.3 |
+| ayodhya_verdict | 0.35 | 0.050 | 7.1 |
+| covid_first_cases | 0.11 | 0.050 | 2.1 |
 
-Direct measurement corroborates p_eff (within ~3×) in **0/0** events → inversion is UNRELIABLE — report with caution.
+Direct measurement corroborates p_eff (within ~3×) in **1/3** events → inversion is UNRELIABLE — report with caution.
 
 ## STATUS
 
 ```
-GATE 1 — response curve R(p) built with CIs for all signals:               FAIL
+GATE 1 — response curve R(p) built with CIs for all signals:               PASS
 GATE 2 — p_eff estimated for all 7 events, inversion documented:           PASS
 GATE 3 — pooled-alarm event test run with >=2000 permutations:             PASS  (2000)
 GATE 4 — power analysis reports minimum detectable effect:                 PASS
 GATE 5 — event footprint measured directly and compared to p_eff:          PASS
 
 THE SENSITIVITY FLOOR:
-    detection threshold (smallest p with excess-power CI>0): S1=None, S1c=None, S3=None, S4=None, S7=None
-    median p_eff across 7 events: S4=nan, S7=nan
+    detection threshold (smallest p with excess-power CI>0): S1=None, S1c=None, S3=1.0, S4=None, S7=None
+    median p_eff across 7 events: S4=0.000, S7=0.050
     ratio event p_eff / threshold: S4=nan, S7=nan
     direct footprint (doc fraction) median across events: 0.317
     does the direct measurement corroborate p_eff?  NO
@@ -134,7 +122,7 @@ THE POOLED EVENT TEST:
 TEST POWER:
     minimum q detectable at 80% power: S4/k=15: >1.0, S4/k=30: >1.0, S7/k=15: >1.0, S7/k=30: >1.0
 
-VERDICT: BLOCKED
+VERDICT: PROCEED WITH CAVEATS
 Blockers:
   - none
 Surprises worth a human decision:

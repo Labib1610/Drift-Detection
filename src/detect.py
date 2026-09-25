@@ -800,8 +800,14 @@ def real_stream_delay(tok_slug, zcol, delta, event_date, vocab_frac, ref_frac):
     d0, w0 = min(after, key=lambda t: t[0])
     return (d0 - event_date).days, int(w0), pre
 
+def get_synth_years(P):
+    syn = P["synthetic"]
+    ey = syn["early_years"]; ly = syn["late_years"]
+    ey = ey[LANG] if isinstance(ey, dict) else ey
+    ly = ly[LANG] if isinstance(ly, dict) else ly
+    return ey, ly
 
-def build_doc_level(tok_names, vocab_frac, ref_frac, target_words, demo):
+def build_doc_level(tok_names, vocab_frac, ref_frac, target_words, demo, early_years, late_years):
     """One ICU pass over the panel; returns per-doc arrays for synthetic streams and
     the window-level covariate table for the real (identity-order) stream."""
     df = pd.read_parquet(f"data/interim/{STREAM}.parquet",
@@ -874,8 +880,8 @@ def build_doc_level(tok_names, vocab_frac, ref_frac, target_words, demo):
             "mean_freq_rank": float(ranks.mean()) if ranks.size else np.nan,
         })
     cov = pd.DataFrame(rows)
-    early = np.where(np.isin(years, [2016, 2017]))[0]
-    late = np.where(np.isin(years, [2020]))[0]
+    early = np.where(np.isin(years, early_years))[0]
+    late = np.where(np.isin(years, late_years))[0]
     return dict(doc_types=doc_types, n_words=nwords, years=years, per_tok=per_tok,
                 early=early, late=late, cov=cov, nre=nre, id_to_type=id_to_type,
                 dates_ns=dates_ns)
@@ -1138,7 +1144,8 @@ def run_t5b(P, tok_names, signals, calibration, grid, far_targets, target_far,
 
     # ---- Problem 3a: synthetic injection ----------------------------------
     log("T5b: building document-level features (ICU pass) ...")
-    dl = build_doc_level(tok_names, vocab_frac, ref_frac, target_words, demo)
+    early_years, late_years = get_synth_years(P)
+    dl = build_doc_level(tok_names, vocab_frac, ref_frac, target_words, demo, early_years, late_years)
     syn = P["synthetic"]
     intensities = syn["intensities"] if not demo else [0.10, 1.00]
     replicates = syn["replicates"] if not demo else 3

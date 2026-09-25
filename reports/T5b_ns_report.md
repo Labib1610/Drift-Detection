@@ -57,51 +57,48 @@ Median [IQR] delay across tokenizers, per signal (S4 is a single value):
 
 ## Problem 3a — semi-synthetic drift injection
 
-Early pool = 2016-2017 (0 docs), late pool = 2020 (8,456 docs). Each synthetic stream is 2000 windows; before W* only early-pool docs, from W* each doc is late w.p. p (drift intensity). W* drawn uniformly from the middle 60%; 20 replicates/intensity, sampled without replacement within a stream (pools are large enough). Streams are shorter than the real detection epoch (documented deviation) to keep 5×20 replicates within budget. delta* is the frozen null-calibrated value; synthetic streams are never calibrated on.
+Early pool = 2016-2017 (1,282 docs), late pool = 2020 (9,789 docs). Each synthetic stream is 2000 windows; before W* only early-pool docs, from W* each doc is late w.p. p (drift intensity). W* drawn uniformly from the middle 60%; 20 replicates/intensity, sampled without replacement within a stream (pools are large enough). Streams are shorter than the real detection epoch (documented deviation) to keep 5×20 replicates within budget. delta* is the frozen null-calibrated value; synthetic streams are never calibrated on.
 
 **Detection power** (fraction of replicates × tokenizers detecting), per signal × intensity:
 
 | signal | p=0.05 | p=0.1 | p=0.25 | p=0.5 | p=1 |
 | --- | --- | --- | --- | --- | --- |
-| S1 | nan | nan | nan | nan | nan |
-| S1c | nan | nan | nan | nan | nan |
-| S3 | nan | nan | nan | nan | nan |
-| S4 | nan | nan | nan | nan | nan |
-| S7 | nan | nan | nan | nan | nan |
+| S1 | 0.92 | 0.92 | 0.89 | 0.92 | 0.86 |
+| S1c | 0.84 | 0.79 | 0.86 | 0.78 | 0.85 |
+| S3 | 0.91 | 0.86 | 0.82 | 0.88 | 0.84 |
+| S4 | 0.95 | 1.00 | 1.00 | 1.00 | 0.90 |
+| S7 | 0.97 | 1.00 | 1.00 | 1.00 | 0.92 |
 
 **Median detection delay in windows** [95% bootstrap CI], per signal × intensity (— = never detected):
 
 | signal | p=0.05 | p=0.1 | p=0.25 | p=0.5 | p=1 |
 | --- | --- | --- | --- | --- | --- |
-| S1 | — | — | — | — | — |
-| S1c | — | — | — | — | — |
-| S3 | — | — | — | — | — |
-| S4 | — | — | — | — | — |
-| S7 | — | — | — | — | — |
+| S1 | 173 [106,301] | 175 [139,269] | 137 [75,234] | 138 [105,284] | 204 [108,380] |
+| S1c | 314 [220,396] | 268 [171,364] | 330 [171,493] | 284 [202,395] | 204 [140,332] |
+| S3 | 138 [106,205] | 175 [108,364] | 137 [75,235] | 154 [106,330] | 252 [140,490] |
+| S4 | 41 [12,45] | 44 [42,74] | 42 [26,45] | 42 [42,44] | 43 [42,45] |
+| S7 | 42 [13,42] | 44 [43,60] | 42 [41,43] | 42 [42,42] | 44 [43,44] |
 
 **Intensity p reaching ≥80% detection power**, per signal:
 
 | signal | S1 | S1c | S3 | S4 | S7 |
 | --- | --- | --- | --- | --- | --- |
-| p@80% | >1.0 | >1.0 | >1.0 | >1.0 | >1.0 |
+| p@80% | 0.05 | 0.05 | 0.05 | 0.05 | 0.05 |
 
 **Ordering check (S7 vs S4 vs S1) with CI overlap:**
 
-- p=0.05: S1: —; S4: —; S7: — → S7 vs S4 CIs n/a.
-- p=0.1: S1: —; S4: —; S7: — → S7 vs S4 CIs n/a.
-- p=0.25: S1: —; S4: —; S7: — → S7 vs S4 CIs n/a.
-- p=0.5: S1: —; S4: —; S7: — → S7 vs S4 CIs n/a.
-- p=1: S1: —; S4: —; S7: — → S7 vs S4 CIs n/a.
+- p=0.05: S1: 173[106,301]; S4: 41[12,45]; S7: 42[13,42] → S7 vs S4 CIs OVERLAP (indistinguishable).
+- p=0.1: S1: 175[139,269]; S4: 44[42,74]; S7: 44[43,60] → S7 vs S4 CIs OVERLAP (indistinguishable).
+- p=0.25: S1: 137[75,234]; S4: 42[26,45]; S7: 42[41,43] → S7 vs S4 CIs OVERLAP (indistinguishable).
+- p=0.5: S1: 138[105,284]; S4: 42[42,44]; S7: 42[42,42] → S7 vs S4 CIs OVERLAP (indistinguishable).
+- p=1: S1: 204[108,380]; S4: 43[42,45]; S7: 44[43,44] → S7 vs S4 CIs OVERLAP (indistinguishable).
 
 ## Problem 3b — multiple real changepoints
 
-All 7 candidate dates verified against cited sources (see `params.yaml`):
+All 4 candidate dates verified against cited sources (see `params.yaml`):
 
 | event | date | source |
 | --- | --- | --- |
-| gst_rollout | 2017-07-01 | Govt of India / PIB — GST launched at midnight 30 Jun-1 Jul 2017 |
-| sabarimala_verdict | 2018-09-28 | Supreme Court of India — Indian Young Lawyers Assn v. State of Kerala, 28 Sep 2018 |
-| pulwama_attack | 2019-02-14 | Reuters / BBC — CRPF convoy attack, Pulwama, 14 Feb 2019 |
 | lok_sabha_results | 2019-05-23 | Election Commission of India — 2019 general election counting 23 May 2019 |
 | article_370_abrogation | 2019-08-05 | Govt of India / Rajya Sabha — Article 370 abrogated 5 Aug 2019 |
 | ayodhya_verdict | 2019-11-09 | Supreme Court of India — Ayodhya title verdict 9 Nov 2019 |
@@ -111,9 +108,6 @@ Delay in **days** to first alarm at/after each event (frozen delta*, real stream
 
 | event | S1 | S1c | S3 | S4 | S7 |
 | --- | --- | --- | --- | --- | --- |
-| gst_rollout | 1031 | 1014 | 1005 | 1065 | 1031 |
-| sabarimala_verdict | 577 | 560 | 551 | 611 | 577 |
-| pulwama_attack | 438 | 421 | 412 | 472 | 438 |
 | lok_sabha_results | 340 | 323 | 314 | 374 | 340 |
 | article_370_abrogation | 266 | 249 | 240 | 300 | 266 |
 | ayodhya_verdict | 170 | 153 | 144 | 204 | 170 |
@@ -155,7 +149,7 @@ GATE 1 — delta grid extended to 0.99; FAR-vs-delta curve reported in full:    
 GATE 2 — does the FAR constraint bind anywhere on the grid?                        DOES NOT BIND
 GATE 3 — full 5x5 delay grid reported; no 'best tokenizer' selection anywhere:     PASS
 GATE 4 — synthetic injection: 5 intensities x 20 replicates, all signals:   PASS
-GATE 5 — >=4 real changepoint dates verified against a cited source:             PASS (7 verified)
+GATE 5 — >=4 real changepoint dates verified against a cited source:             PASS (4 verified)
 GATE 6 — delta* frozen from null streams only; no synthetic/real-stream leakage:   PASS
 
 THE ORDERING, under correct treatment:
@@ -166,8 +160,8 @@ THE ORDERING, under correct treatment:
         S3: 24 [24,50]
         S4: 84 (single value)
         S7: 50 [50,50]
-    p for 80% detection power, per signal: S1=>1.0, S1c=>1.0, S3=>1.0, S4=>1.0, S7=>1.0
-    do the CIs separate S7 from S4?  n/a (insufficient detections)
+    p for 80% detection power, per signal: S1=0.05, S1c=0.05, S3=0.05, S4=0.05, S7=0.05
+    do the CIs separate S7 from S4?  NO (by intensity: 0.05:overlap, 0.1:overlap, 0.25:overlap, 0.5:overlap, 1:overlap)
 
 THE ANOMALY:
     covariate trends explaining S1 sign flip: none (covariates explain variance, not the drift/flip)
@@ -176,5 +170,6 @@ VERDICT: PROCEED WITH CAVEATS
 Blockers:
   - none
 Surprises worth a human decision:
+  - Under correct treatment S7 and S4 are INDISTINGUISHABLE (CIs overlap at every intensity). The T5 headline ranking does not survive — the honest result is a clean negative with a mechanism.
   - ADWIN's FAR constraint never binds even at delta=0.99: detectors run at maximum sensitivity, so delays are NOT at a matched FAR. Report delays as max-sensitivity, not FAR-matched.
 ```

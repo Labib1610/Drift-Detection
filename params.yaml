@@ -69,13 +69,17 @@ embeddings:                    # T6 Part 4 — MMD embedding baseline S5
   encode_budget_min: 60
   subsample_docs: 40000        # budget guard: stratified-by-month fallback
 
-synthetic:                     # T5b Problem 3a — semi-synthetic drift injection
+synthetic:
   intensities: [0.05, 0.10, 0.25, 0.50, 1.00]
   replicates: 20
-  n_windows: 2000              # per synthetic stream (< real detection epoch; see report)
-  early_years: [2016, 2017]
-  late_years: [2020]
-  wstar_low: 0.20              # W* drawn uniformly from the middle 60% of the stream
+  n_windows: 2000
+  early_years:
+    bn: [2016, 2017]
+    ns: [2019]        # first calendar year the ns_panel actually covers
+  late_years:
+    bn: [2020]
+    ns: [2024]        # last full year the ns_panel covers
+  wstar_low: 0.20
   wstar_high: 0.80
   seed: 42
 
@@ -92,9 +96,6 @@ changepoints:
     - {name: abrar_fahad_killing,  date: "2019-10-07", source: "Wikipedia / The Daily Star — killed night 6-7 Oct 2019", seeds: [আবরার, বুয়েট, ফাহাদ, ছাত্রলীগ]}
     - {name: covid_first_cases,    date: "2020-03-08", source: "IEDCR / Frontiers Public Health — first 3 cases 8 Mar 2020", seeds: [করোনা, কোভিড, লকডাউন, কোয়ারেন্টিন]}
   ns:
-    - {name: gst_rollout,              date: "2017-07-01", source: "Govt of India / PIB — GST launched at midnight 30 Jun-1 Jul 2017", seeds: [gst, gstn, gstin]}
-    - {name: sabarimala_verdict,       date: "2018-09-28", source: "Supreme Court of India — Indian Young Lawyers Assn v. State of Kerala, 28 Sep 2018", seeds: [sabarimala, ayyappa, devaswom, pandalam]}
-    - {name: pulwama_attack,           date: "2019-02-14", source: "Reuters / BBC — CRPF convoy attack, Pulwama, 14 Feb 2019", seeds: [pulwama, balakot, crpf, jaish, awantipora]}
     - {name: lok_sabha_results,        date: "2019-05-23", source: "Election Commission of India — 2019 general election counting 23 May 2019", seeds: [mandate, vvpat, evm, nda]}
     - {name: article_370_abrogation,   date: "2019-08-05", source: "Govt of India / Rajya Sabha — Article 370 abrogated 5 Aug 2019", seeds: ["370", abrogation, abrogated, ladakh]}
     - {name: ayodhya_verdict,          date: "2019-11-09", source: "Supreme Court of India — Ayodhya title verdict 9 Nov 2019", seeds: [ayodhya, babri, janmabhoomi, masjid]}

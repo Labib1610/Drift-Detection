@@ -8,9 +8,6 @@ Turnover (a) = docs with a top-20 over-represented type; event footprint (b) = d
 
 | event | turnover (a) | event fp post (b) | seed pre-baseline | **excess (b−pre)** |
 | --- | --- | --- | --- | --- |
-| gst_rollout | nan | nan | nan | **+nan** |
-| sabarimala_verdict | nan | nan | nan | **+nan** |
-| pulwama_attack | nan | nan | nan | **+nan** |
 | lok_sabha_results | nan | nan | nan | **+nan** |
 | article_370_abrogation | 0.317 | 0.111 | 0.000 | **+0.111** |
 | ayodhya_verdict | 0.354 | 0.067 | 0.010 | **+0.058** |
@@ -21,9 +18,6 @@ Fraction of the 7 event dates whose turnover exceeds the 95th random-date percen
 
 Matched seed surface forms per event (auditable by a Bangla reader):
 
-- **gst_rollout** — seeds ['gst', 'gstn', 'gstin']: 11 matched types; e.g. gst, gst's, gst.actors, gst.prosenjit, gst.this, gstat, gstc, gstins, gstn, gstr, gst’s
-- **sabarimala_verdict** — seeds ['sabarimala', 'ayyappa', 'devaswom', 'pandalam']: 9 matched types; e.g. ayyappa, ayyappadas, ayyappan, ayyappankavu, ayyappanum, devaswom, devaswoms, pandalam, sabarimala
-- **pulwama_attack** — seeds ['pulwama', 'balakot', 'crpf', 'jaish', 'awantipora']: 27 matched types; e.g. awantipora, balakot, balakote, balakote’s, balakoti, crpf, crpf's, crpf’s, jaish, jaishankar, jaishankar's, jaishankarand …
 - **lok_sabha_results** — seeds ['mandate', 'vvpat', 'evm', 'nda']: 26 matched types; e.g. evm, evms, evms.the, mandate, mandate.that, mandated, mandates, mandates.the, nda, nda's, nda.even, ndaa …
 - **article_370_abrogation** — seeds ['370', 'abrogation', 'abrogated', 'ladakh']: 20 matched types; e.g. 370, 370,000, 370,384, 370.15, 370.5, 370.8, 370.90, 3700, 3701.50, 370m, abrogated, abrogation …
 - **ayodhya_verdict** — seeds ['ayodhya', 'babri', 'janmabhoomi', 'masjid']: 15 matched types; e.g. ayodhya, ayodhya's, ayodhya.mr, ayodhya.prasad, ayodhya.scupltor, ayodhya42, ayodhya:it's, ayodhyaa, ayodhyaram, ayodhya’s, babri, janmabhoomi …
@@ -39,9 +33,6 @@ Event footprint (b) vs detection delay (days) and response R_obs, per signal:
 
 | event | footprint | delay S1 | delay S4 | delay S7 | R_obs S1 | R_obs S4 | R_obs S7 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| gst_rollout | nan | 1031 | 1065 | 1031 | — | — | — |
-| sabarimala_verdict | nan | 577 | 611 | 577 | — | — | — |
-| pulwama_attack | nan | 438 | 472 | 438 | — | — | — |
 | lok_sabha_results | nan | 340 | 374 | 340 | — | — | — |
 | article_370_abrogation | 0.111 | 266 | 300 | 266 | -0.43 | -0.00 | +0.00 |
 | ayodhya_verdict | 0.067 | 170 | 204 | 170 | -0.14 | +0.00 | +0.00 |
@@ -66,10 +57,7 @@ Events ranked by event footprint, with turnover, R_obs(S7), delay(S7):
 | 1 | article_370_abrogation | 0.111 | 0.317 | +0.00 | 266 |
 | 2 | covid_first_cases | 0.100 | 0.107 | +2.03 | 88 |
 | 3 | ayodhya_verdict | 0.067 | 0.354 | +0.00 | 170 |
-| 4 | gst_rollout | nan | nan | +nan | 1031 |
-| 5 | sabarimala_verdict | nan | nan | +nan | 577 |
-| 6 | pulwama_attack | nan | nan | +nan | 438 |
-| 7 | lok_sabha_results | nan | nan | +nan | 340 |
+| 4 | lok_sabha_results | nan | nan | +nan | 340 |
 
 COVID turnover (0.107) sits at the **8th percentile** of the 60 random-date turnover distribution.
 
@@ -84,9 +72,6 @@ GATE 3 — seed-term matching shown with matched surface forms per event:      P
 GATE 4 — p_eff inversion removed, with the reason stated:                    PASS
 
 THE TWO FOOTPRINTS:
-    gst_rollout: turnover=nan  event(b)=nan  pre-baseline=nan  excess=+nan
-    sabarimala_verdict: turnover=nan  event(b)=nan  pre-baseline=nan  excess=+nan
-    pulwama_attack: turnover=nan  event(b)=nan  pre-baseline=nan  excess=+nan
     lok_sabha_results: turnover=nan  event(b)=nan  pre-baseline=nan  excess=+nan
     article_370_abrogation: turnover=0.317  event(b)=0.111  pre-baseline=0.000  excess=+0.111
     ayodhya_verdict: turnover=0.354  event(b)=0.067  pre-baseline=0.010  excess=+0.058

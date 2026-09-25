@@ -1,6 +1,6 @@
 # TASK 5 — Detection, FAR calibration, redundancy test
 
-- Mode: FULL · wall-clock 51.8s · null streams: perms 01-10
+- Mode: FULL · wall-clock 31.8s · null streams: perms 01-10
 - Language: `ns` · stream: `ns_panel`
 - Reproduce: `python src/detect.py --lang ns --params params.yaml`
 
