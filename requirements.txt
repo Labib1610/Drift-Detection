@@ -1,0 +1,53 @@
+# ---------------------------------------------------------------------------
+# Label-Free Concept Drift Detection via Tokenizer Fertility — dependencies
+# Pinned to the exact versions the pipeline was built & verified against.
+# Python 3.12 (tested on 3.12.3).
+#
+#   python3.12 -m venv .venv && source .venv/bin/activate
+#   sudo apt-get install libicu-dev pkg-config     # SYSTEM dep for PyICU (Debian/Ubuntu) — install FIRST
+#   pip install -r requirements.txt
+#
+# The GPU stack (torch + sentence-transformers) is OPTIONAL and used only by
+# src/embeddings.py (Part 4, the MMD/LaBSE baseline). It is NOT in this file
+# because the wheel is hardware-specific. Install it separately if you need S5:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu128   # RTX 50xx / Blackwell -> CUDA 12.8
+#   pip install "sentence-transformers==6.0.1"
+# (Everything else in the pipeline — prepare, streams, fertility, detect,
+#  classifier — is pure CPU and needs nothing below the line.)
+# ---------------------------------------------------------------------------
+
+# --- data handling ---
+numpy==2.5.3
+pandas==3.0.5
+pyarrow==25.0.1
+PyYAML==6.0.3
+
+# --- word segmentation (the frozen "word" definition; needs libicu-dev) ---
+PyICU==2.16.2
+
+# --- tokenizers (fertility signals; tokenizer files only, no model weights) ---
+transformers==5.16.1
+tokenizers==0.23.2
+
+# --- streaming/online ML: ADWIN detector + logistic-regression baseline (S6) ---
+river==0.26.1
+
+# --- statistics (Spearman, Wilcoxon, bootstrap helpers) ---
+scipy==1.18.1
+
+# --- corpus streaming for the multilingual volume probe (CC-News / MLSUM) ---
+datasets==5.0.1
+
+# --- plots ---
+matplotlib==3.11.1
+
+# --- data/version control + Google Drive remote ---
+dvc==3.67.1
+dvc-gdrive==3.0.1
+
+# ---------------------------------------------------------------------------
+# GPU-only (Part 4 / signal S5). Uncomment ONLY if you have a CUDA GPU and
+# installed the matching torch wheel via the --index-url line above.
+# torch==2.14.0
+# sentence-transformers==6.0.1
+# ---------------------------------------------------------------------------
