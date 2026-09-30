@@ -51,7 +51,7 @@ pip install -r requirements.txt
 huggingface-cli login          # for the gated Llama tokenizer (or drop it from params.yaml)
 #   + place Google Drive creds for DVC (see Auth)
 
-# 4. get the data (4.3 GB corpus + derived artifacts from the Drive remote)
+# 4. get the data 
 dvc pull
 
 # 5. run the whole pipeline (only re-runs what changed)
@@ -120,7 +120,7 @@ dvc push -j 4                                          # upload bytes to Drive
 dvc pull            # download data/interim, features, raw from Drive
 dvc push -j 4       # upload produced bytes
 dvc repro           # rebuild only the stages whose deps/params changed
-dvc repro -f detect # force a stage (needed after classify/embed — see note below)
+
 dvc dag             # show the pipeline graph
 dvc metrics show    # print results/detection_metrics.json
 dvc checkout        # materialise files from the LOCAL cache (no network)
@@ -205,10 +205,6 @@ instructions, and copy-paste AI-tool prompts are in
 dominance first).
 
 ---
-
-## Authors
-
-Nurul Labib Sayeedi (UIU) · Supervisor: Dr. Jannatun Noor. Target venue: ARR / NAACL 2027.
 
 ## License
 
