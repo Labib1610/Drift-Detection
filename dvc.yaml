@@ -1,66 +1,127 @@
+# DVC pipeline — dynamic over languages (Bangla `bn` + NewsSumm/English `ns`).
+#
+# Every script is --lang aware and namespaces its outputs by language
+# (bn -> no suffix, others -> _<lang>), so both languages live side by side in
+# the same output directories. Each stage therefore runs ONCE per step and
+# loops the languages via a list-form `cmd` (DVC runs the commands in order).
+#
+# TO ADD A LANGUAGE (e.g. Turkish `tr`):
+#   1. add a `tr:` block + `changepoints.tr` to params.yaml (+ get its raw data),
+#   2. append `python src/<script>.py --lang tr --params params.yaml` to each cmd
+#      below, and add its raw dir to `prepare.deps` and its result files to the
+#      relevant `outs`.  Then `dvc repro`.
+#
+# Reproduce everything:  dvc repro        (embed needs a CUDA GPU; see README)
+
 stages:
-  streams:
-    cmd: python src/streams.py
-    deps:
+
+  # 1) clean raw corpora -> data/interim/{lang}_panel.parquet, {lang}_full.parquet
+  prepare:
+    cmd: # Command -> The actual shell command that DVC executes to run the stage.
+    - python src/prepare.py --lang bn --params params.yaml --report reports/T2_report.md
+    - python src/prepare.py --lang ns --params params.yaml --report reports/T2_ns_report.md
+    deps: # Dependencies -> Files that the stage depends on. If any of these files change, DVC will rerun the stage.
+    - src/prepare.py
+    - data/raw/bn_potrika           # Bangla (DVC-tracked)
+    - data/raw/NewsSumm             # English/NewsSumm raw
+    params: # Parameters -> Parameters that the stage depends on. If any of these parameters change, DVC will rerun the stage.
+    - seed
+    - data
+    - bn
+    - ns
+    outs: # Outputs -> Files that the stage produces. DVC will track these files and their versions.
     - data/interim
+
+  # 2) build the 11 index permutations per prepared stream (auto-discovers all langs)
+  streams:
+    cmd: python src/streams.py --params params.yaml
+    deps:
     - src/streams.py
+    - data/interim
     params:
     - seed
     - streams
     outs:
     - data/streams
+
+  # 3) tokenize + window + z-score the label-free signals S1..S9 (per language)
   fertility:
-    cmd: python src/fertility.py
+    cmd:
+    - python src/fertility.py --lang bn --params params.yaml
+    - python src/fertility.py --lang ns --params params.yaml
     deps:
+    - src/fertility.py
     - data/interim
     - data/streams
-    - src/fertility.py
     params:
     - tokenizers
     - window
     outs:
     - features/fertility
     - features/windows
-  prepare:
-    cmd: python src/prepare.py --lang bn --params params.yaml
+
+  # 4) supervised baseline S6 (frozen publisher classifier error) per language
+  classify:
+    cmd:
+    - python src/classifier.py --lang bn --params params.yaml
+    - python src/classifier.py --lang ns --params params.yaml
     deps:
-    - data/raw/bn_potrika
-    - src/prepare.py
-    params:
-    - bn
-    - data
-    - seed
-    outs:
+    - src/classifier.py
     - data/interim
-  detect:
-    cmd: python src/detect.py --params params.yaml
-    deps:
     - features/windows
+    params:
+    - classifier
+    - window
+    outs:
+    - features/classifier
+    - results/classifier_calibration.json
+    - results/classifier_calibration_ns.json
+    metrics:
+    - results/classifier_metrics.json:
+        cache: false
+    - results/classifier_metrics_ns.json:
+        cache: false
+
+  # 5) MMD embedding baseline S5 (LaBSE, GPU) per language
+  embed:
+    cmd:
+    - python src/embeddings.py --lang bn --params params.yaml
+    - python src/embeddings.py --lang ns --params params.yaml
+    deps:
+    - src/embeddings.py
+    - data/interim
+    params:
+    - embeddings
+    - window
+    outs:
+    - features/embeddings
+    - results/embeddings_calibration.json
+    - results/embeddings_calibration_ns.json
+    - results/embeddings_status.json
+    - results/embeddings_status_ns.json
+
+  # 6) FAR-calibrated ADWIN detection + T5..T9 analyses per language
+  #    (depends on classify/embed outputs so it re-runs when they change)
+  detect:
+    cmd:
+    - python src/detect.py --lang bn --params params.yaml
+    - python src/detect.py --lang ns --params params.yaml
+    deps:
     - src/detect.py
+    - features/windows
+    - features/classifier
+    - features/embeddings
     params:
     - detect
     - window
+    - adwin
+    - synthetic
+    - changepoints
     outs:
     - results/calibration.json
+    - results/calibration_ns.json
     metrics:
     - results/detection_metrics.json:
         cache: false
-  classify:
-    cmd: python src/classifier.py --params params.yaml
-    deps:
-    - data/interim
-    - features/windows
-    - src/classifier.py
-    params:
-    - classifier
-    outs:
-    - features/classifier
-  embed:
-    cmd: python src/embeddings.py --params params.yaml
-    deps:
-    - data/interim
-    - src/embeddings.py
-    params:
-    - embeddings
-    outs:
-    - features/embeddings
+    - results/detection_metrics_ns.json:
+        cache: false

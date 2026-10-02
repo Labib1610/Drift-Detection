@@ -127,19 +127,26 @@ dvc checkout        # materialise files from the LOCAL cache (no network)
 dvc status          # what's out of date
 ```
 
-### The pipeline graph (`dvc.yaml`)
+### The pipeline graph (`dvc.yaml`) — dynamic over languages
+Every stage is **language-dynamic**: each script is `--lang` aware and namespaces its outputs
+(bn → no suffix, ns → `_ns`), so one stage runs **both** Bangla (`bn`) and NewsSumm/English
+(`ns`) and both live side by side in the same output folders.
 ```
-prepare  ─┐                                     data/raw/bn_potrika ─▶ data/interim
-          ├─▶ streams   ─▶ data/streams
-          └─▶ fertility ─▶ features/fertility, features/windows
-                              │
-            detect ──────────┘  ─▶ results/calibration.json, detection_metrics.json + reports/T5..T9
-            classify ─▶ features/classifier         (S6 supervised baseline)
-            embed    ─▶ features/embeddings          (S5 MMD baseline, GPU)
+data/raw/bn_potrika ─┐
+                     ├─▶ prepare ─▶ data/interim ─┬─▶ streams  ─▶ data/streams
+data/raw/NewsSumm   ─┘  (--lang bn, --lang ns)    └─▶ fertility ─▶ features/{fertility,windows}
+                                                          │
+                     classify ─▶ features/classifier + results/classifier_*          ─┐
+                     embed    ─▶ features/embeddings  + results/embeddings_*  (GPU)    ├─▶ detect
+                                                                                       ┘
+   detect ─▶ results/calibration{,_ns}.json, detection_metrics{,_ns}.json + reports/T5..T9{,_ns}
 ```
-> **Note:** `detect` reads `features/classifier/` and `features/embeddings/` at runtime but
-> they are not declared as its deps, so after re-running `classify`/`embed` do
-> `dvc repro -f detect` to fold S5/S6 into the reports.
+`detect` now **declares** `features/classifier` and `features/embeddings` as dependencies, so
+`dvc repro` re-runs it automatically whenever the baselines change. Run the whole thing with
+`dvc repro`; `embed` needs a CUDA GPU (torch + sentence-transformers).
+**To add a language** (e.g. Turkish `tr`): add a `tr:` block + `changepoints.tr` to
+`params.yaml`, get its raw data, and append `--lang tr` commands + outputs to each stage in
+`dvc.yaml` (header comment there shows exactly where). Then `dvc repro`.
 
 ---
 
