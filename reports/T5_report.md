@@ -1,7 +1,8 @@
 # TASK 5 — Detection, FAR calibration, redundancy test
 
-- Mode: FULL · wall-clock 30.7s · null streams: perms 01-10
-- Reproduce: `python src/detect.py --params params.yaml`
+- Mode: FULL · wall-clock 34.1s · null streams: perms 01-10
+- Language: `bn` · stream: `bn_panel`
+- Reproduce: `python src/detect.py --lang bn --params params.yaml`
 
 **Anti-leakage:** every `delta*` is chosen using only the shuffled null streams (perms 01-10). The real stream (perm 00) is touched only *after* delta* is frozen in `results/calibration.json`. delta* never sees real-stream data.
 

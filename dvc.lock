@@ -1,17 +1,17 @@
 schema: '2.0'
 stages:
   streams:
-    cmd: python src/streams.py
+    cmd: python src/streams.py --params params.yaml
     deps:
     - path: data/interim
       hash: md5
-      md5: 60504bce6c528011f85345c338f75015.dir
-      size: 217164296
-      nfiles: 2
+      md5: d6404b3593cfecb000ed4091fe7c7d95.dir
+      size: 327676965
+      nfiles: 4
     - path: src/streams.py
       hash: md5
-      md5: 9d2e2e16c545dc6d6c3b9121e9d61e2b
-      size: 3958
+      md5: 2acb24a63325840174799ac7a76ee448
+      size: 4529
     params:
       params.yaml:
         seed: 42
@@ -20,26 +20,28 @@ stages:
     outs:
     - path: data/streams
       hash: md5
-      md5: d35dc65dfd72ccbf73de85a194b5521f.dir
-      size: 8625421
-      nfiles: 3
+      md5: d0ad857d3cf0d9975085ac975a23d3d9.dir
+      size: 14371923
+      nfiles: 5
   fertility:
-    cmd: python src/fertility.py
+    cmd:
+    - python src/fertility.py --lang bn --params params.yaml
+    - python src/fertility.py --lang ns --params params.yaml
     deps:
     - path: data/interim
       hash: md5
-      md5: 60504bce6c528011f85345c338f75015.dir
-      size: 217164296
-      nfiles: 2
+      md5: d6404b3593cfecb000ed4091fe7c7d95.dir
+      size: 327676965
+      nfiles: 4
     - path: data/streams
       hash: md5
-      md5: d35dc65dfd72ccbf73de85a194b5521f.dir
-      size: 8625421
-      nfiles: 3
+      md5: d0ad857d3cf0d9975085ac975a23d3d9.dir
+      size: 14371923
+      nfiles: 5
     - path: src/fertility.py
       hash: md5
-      md5: ccead33ee92dd77679e100344ddec9b5
-      size: 60300
+      md5: b43c9ee9b99bee27da4c94b6a9440e77
+      size: 62913
     params:
       params.yaml:
         tokenizers:
@@ -56,17 +58,26 @@ stages:
     outs:
     - path: features/fertility
       hash: md5
-      md5: fffd6e8a2eaa98e9b3fce50b75775790.dir
-      size: 12184948
-      nfiles: 10
+      md5: e8928fda36bbeffebcfbfdaa0b06f3ae.dir
+      size: 20273751
+      nfiles: 20
     - path: features/windows
       hash: md5
-      md5: 6e288bb0ce8c9d409152ef174132b0f4.dir
-      size: 134848740
-      nfiles: 61
+      md5: 8f341204e51ec325a09fc0ed84458ab6.dir
+      size: 252006399
+      nfiles: 122
   prepare:
-    cmd: python src/prepare.py --lang bn --params params.yaml
+    cmd:
+    - python src/prepare.py --lang bn --params params.yaml --report 
+      reports/T2_report.md
+    - python src/prepare.py --lang ns --params params.yaml --report 
+      reports/T2_ns_report.md
     deps:
+    - path: data/raw/NewsSumm
+      hash: md5
+      md5: 6aa50e58df4dc99e4d2e046f4b800c1d.dir
+      size: 720315229
+      nfiles: 2
     - path: data/raw/bn_potrika
       hash: md5
       md5: d2253f905c1d17dede543f972b705995.dir
@@ -74,11 +85,12 @@ stages:
       nfiles: 71
     - path: src/prepare.py
       hash: md5
-      md5: ad355e0af194f97240418e77bd4fdb69
-      size: 23082
+      md5: b1bd456629c8c917deffa22c40d6e341
+      size: 37173
     params:
       params.yaml:
         bn:
+          loader: potrika_csv
           raw_dir: data/raw/bn_potrika/RawDataset
           panel_publishers:
           - Inqilab
@@ -96,27 +108,177 @@ stages:
           - hi
           - ar
           - uk
+        ns:
+          loader: newssumm_csv
+          raw_dir: data/raw/NewsSumm/Processed/NewsSumm_processed.xlsx
+          full_start: 2000-01
+          full_end: 2025-12
+          n_full_publishers: 30
+          suggest_k: 3
+          suggest_min_cell: 30
+          suggest_top_n: 10
+          fertility_range:
+          - 1.0
+          - 12.0
+          panel_publishers:
+          - The Hindu
+          - The Times of India
+          - Hindustan Times
+          panel_start: 2019-07
+          panel_end: 2024-09
         seed: 42
     outs:
     - path: data/interim
       hash: md5
-      md5: 60504bce6c528011f85345c338f75015.dir
-      size: 217164296
-      nfiles: 2
+      md5: d6404b3593cfecb000ed4091fe7c7d95.dir
+      size: 327676965
+      nfiles: 4
   detect:
-    cmd: python src/detect.py --params params.yaml
+    cmd:
+    - python src/detect.py --lang bn --params params.yaml
+    - python src/detect.py --lang ns --params params.yaml
     deps:
+    - path: features/classifier
+      hash: md5
+      md5: 9b36c4bd6688a18aad3ef13e5153de89.dir
+      size: 7244581
+      nfiles: 68
+    - path: features/embeddings
+      hash: md5
+      md5: c19721f5ffb6428fee11a57dd4da8660.dir
+      size: 230402484
+      nfiles: 24
     - path: features/windows
       hash: md5
-      md5: 6e288bb0ce8c9d409152ef174132b0f4.dir
-      size: 134848740
-      nfiles: 61
+      md5: 8f341204e51ec325a09fc0ed84458ab6.dir
+      size: 252006399
+      nfiles: 122
     - path: src/detect.py
       hash: md5
-      md5: 5f12f491d96b0998188e2b030f3a3cd2
-      size: 150658
+      md5: e54b4a2a5f2f074f4bf119823eec9693
+      size: 152715
     params:
       params.yaml:
+        adwin:
+          delta_grid:
+          - 1e-06
+          - 1e-05
+          - 0.0001
+          - 0.001
+          - 0.01
+          - 0.05
+          - 0.1
+          - 0.2
+          - 0.3
+          - 0.5
+          - 0.7
+          - 0.9
+          - 0.95
+          - 0.99
+          target_far: 0.001
+          far_sensitivity:
+          - 0.01
+          - 0.0001
+        changepoints:
+          bn:
+          - name: rohingya_influx
+            date: '2017-08-25'
+            source: Crisis Group / CFR — ARSA attacks 25 Aug 2017 triggered 
+              exodus
+            seeds:
+            - রোহিঙ্গা
+            - রাখাইন
+            - আরাকান
+            - শরণার্থী
+          - name: khaleda_zia_jailed
+            date: '2018-02-08'
+            source: The Daily Star / Business Standard — sentenced 8 Feb 2018
+            seeds:
+            - খালেদা
+            - জিয়া
+            - এতিমখানা
+            - কারাগারে
+          - name: road_safety_protests
+            date: '2018-07-29'
+            source: Wikipedia / TIME / NPR — bus killed 2 students 29 Jul 2018
+            seeds:
+            - নিরাপদ
+            - সড়ক
+            - বাসচাপায়
+            - শিক্ষার্থীদের
+            - আন্দোলন
+            - জাবালে
+            - নূর
+          - name: parliamentary_election
+            date: '2018-12-30'
+            source: IPU Parline / APF Canada — 11th election 30 Dec 2018
+            seeds:
+            - নির্বাচন
+            - ভোট
+            - একাদশ
+            - সংসদ
+            - ইভিএম
+          - name: nusrat_rafi_murder
+            date: '2019-04-10'
+            source: HRW / CBS — attacked 6 Apr, died 10 Apr 2019
+            seeds:
+            - নুসরাত
+            - ফেনী
+            - মাদ্রাসা
+            - সোনাগাজী
+          - name: abrar_fahad_killing
+            date: '2019-10-07'
+            source: Wikipedia / The Daily Star — killed night 6-7 Oct 2019
+            seeds:
+            - আবরার
+            - বুয়েট
+            - ফাহাদ
+            - ছাত্রলীগ
+          - name: covid_first_cases
+            date: '2020-03-08'
+            source: IEDCR / Frontiers Public Health — first 3 cases 8 Mar 2020
+            seeds:
+            - করোনা
+            - কোভিড
+            - লকডাউন
+            - কোয়ারেন্টিন
+          ns:
+          - name: lok_sabha_results
+            date: '2019-05-23'
+            source: Election Commission of India — 2019 general election 
+              counting 23 May 2019
+            seeds:
+            - mandate
+            - vvpat
+            - evm
+            - nda
+          - name: article_370_abrogation
+            date: '2019-08-05'
+            source: Govt of India / Rajya Sabha — Article 370 abrogated 5 Aug 
+              2019
+            seeds:
+            - '370'
+            - abrogation
+            - abrogated
+            - ladakh
+          - name: ayodhya_verdict
+            date: '2019-11-09'
+            source: Supreme Court of India — Ayodhya title verdict 9 Nov 2019
+            seeds:
+            - ayodhya
+            - babri
+            - janmabhoomi
+            - masjid
+          - name: covid_first_cases
+            date: '2020-01-30'
+            source: MoHFW / WHO — first COVID-19 case in India (Kerala) 30 Jan 
+              2020
+            seeds:
+            - coronavirus
+            - covid
+            - lockdown
+            - quarantine
+            - pandemic
         detect:
           changepoint: '2020-03-08'
           covid_window_days: 60
@@ -126,6 +288,29 @@ stages:
           - S3
           - S4
           - S7
+        synthetic:
+          intensities:
+          - 0.05
+          - 0.1
+          - 0.25
+          - 0.5
+          - 1.0
+          replicates: 20
+          n_windows: 2000
+          early_years:
+            bn:
+            - 2016
+            - 2017
+            ns:
+            - 2019
+          late_years:
+            bn:
+            - 2020
+            ns:
+            - 2024
+          wstar_low: 0.2
+          wstar_high: 0.8
+          seed: 42
         window:
           words_per_window: 2000
           calibration_fraction: 0.1
@@ -136,27 +321,37 @@ stages:
       hash: md5
       md5: 6b2df2b72d0791d9fb82c0699f232140
       size: 47958
+    - path: results/calibration_ns.json
+      hash: md5
+      md5: 6c64079493bb70e80e99806606abe116
+      size: 45093
     - path: results/detection_metrics.json
       hash: md5
       md5: ef55efdc72ac55f4224cdae0c9ed48b0
       size: 75719
+    - path: results/detection_metrics_ns.json
+      hash: md5
+      md5: 514e2038295402d484f4555d0774f5a1
+      size: 100465
   classify:
-    cmd: python src/classifier.py --params params.yaml
+    cmd:
+    - python src/classifier.py --lang bn --params params.yaml
+    - python src/classifier.py --lang ns --params params.yaml
     deps:
     - path: data/interim
       hash: md5
-      md5: 60504bce6c528011f85345c338f75015.dir
-      size: 217164296
-      nfiles: 2
+      md5: d6404b3593cfecb000ed4091fe7c7d95.dir
+      size: 327676965
+      nfiles: 4
     - path: features/windows
       hash: md5
-      md5: 6e288bb0ce8c9d409152ef174132b0f4.dir
-      size: 134848740
-      nfiles: 61
+      md5: 8f341204e51ec325a09fc0ed84458ab6.dir
+      size: 252006399
+      nfiles: 122
     - path: src/classifier.py
       hash: md5
-      md5: 7e65e5baa1aae2c8d33a072ee0ae20d4
-      size: 10344
+      md5: e36bc236ce5336e429c7038902bbb559
+      size: 10986
     params:
       params.yaml:
         classifier:
@@ -165,24 +360,47 @@ stages:
           targets:
           - publisher
           - topic
+        window:
+          words_per_window: 2000
+          calibration_fraction: 0.1
+          vocab_fraction: 0.05
+          reference_fraction: 0.05
     outs:
     - path: features/classifier
       hash: md5
-      md5: caff2cc8752e47180aacabfe95f853f7.dir
-      size: 4536802
-      nfiles: 34
+      md5: 9b36c4bd6688a18aad3ef13e5153de89.dir
+      size: 7244581
+      nfiles: 68
+    - path: results/classifier_calibration.json
+      hash: md5
+      md5: c27b8f9a947e9aff2f2b52f4f52d30b4
+      size: 3012
+    - path: results/classifier_calibration_ns.json
+      hash: md5
+      md5: 5fd6574e92cead9fb683742c9094b24f
+      size: 2985
+    - path: results/classifier_metrics.json
+      hash: md5
+      md5: cdd80d3b6188025f17c10296fadd8c58
+      size: 603
+    - path: results/classifier_metrics_ns.json
+      hash: md5
+      md5: 50099ba698d979dfd5d94e3269e125a2
+      size: 674
   embed:
-    cmd: python src/embeddings.py --params params.yaml
+    cmd:
+    - python src/embeddings.py --lang bn --params params.yaml
+    - python src/embeddings.py --lang ns --params params.yaml
     deps:
     - path: data/interim
       hash: md5
-      md5: 60504bce6c528011f85345c338f75015.dir
-      size: 217164296
-      nfiles: 2
+      md5: d6404b3593cfecb000ed4091fe7c7d95.dir
+      size: 327676965
+      nfiles: 4
     - path: src/embeddings.py
       hash: md5
-      md5: 34ab33219325e58ef0dbf5fc6dbb6ed7
-      size: 8122
+      md5: 793133c7ef2b24f2ed98bf9ce5f330d3
+      size: 8714
     params:
       params.yaml:
         embeddings:
@@ -193,9 +411,30 @@ stages:
           max_docs_per_window: 200
           encode_budget_min: 60
           subsample_docs: 40000
+        window:
+          words_per_window: 2000
+          calibration_fraction: 0.1
+          vocab_fraction: 0.05
+          reference_fraction: 0.05
     outs:
     - path: features/embeddings
       hash: md5
-      md5: c304b3d3dbc4f7ab4d302c508f30e233.dir
-      size: 156989646
-      nfiles: 12
+      md5: c19721f5ffb6428fee11a57dd4da8660.dir
+      size: 230402484
+      nfiles: 24
+    - path: results/embeddings_calibration.json
+      hash: md5
+      md5: 0f1512002da8bde85e2eefd92a068a2e
+      size: 1182
+    - path: results/embeddings_calibration_ns.json
+      hash: md5
+      md5: 6027d8fd95512f75880e8f48e5960057
+      size: 1141
+    - path: results/embeddings_status.json
+      hash: md5
+      md5: 04634c613a97eb2fab7724a3a9fdf955
+      size: 71
+    - path: results/embeddings_status_ns.json
+      hash: md5
+      md5: 346788635521253e8c94b551f1b1bc79
+      size: 69

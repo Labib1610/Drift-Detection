@@ -1,6 +1,6 @@
 # TASK 5 — Detection, FAR calibration, redundancy test
 
-- Mode: FULL · wall-clock 31.8s · null streams: perms 01-10
+- Mode: FULL · wall-clock 30.2s · null streams: perms 01-10
 - Language: `ns` · stream: `ns_panel`
 - Reproduce: `python src/detect.py --lang ns --params params.yaml`
 
@@ -10,11 +10,11 @@
 
 | tokenizer | corr(S4,S7) level | Spearman | corr Δ(S4),Δ(S7) | partial corr(S7,time\|S4) | R²(S7~S4) | resid/σ_ref(S7) |
 | --- | --- | --- | --- | --- | --- | --- |
-| bert-base-multilingual-cased | 0.969 | 0.977 | 0.970 | 0.018 | 0.939 | 0.322 |
-| xlm-roberta-base | 0.971 | 0.976 | 0.973 | -0.015 | 0.943 | 0.317 |
-| Llama-3.2-1B | 0.964 | 0.959 | 0.965 | -0.111 | 0.929 | 0.353 |
-| Qwen2.5-0.5B | 0.937 | 0.927 | 0.939 | -0.127 | 0.878 | 0.469 |
-| bloom-560m | 0.971 | 0.970 | 0.974 | -0.055 | 0.944 | 0.318 |
+| bert-base-multilingual-cased | 0.969 | 0.977 | 0.970 | 0.020 | 0.940 | 0.320 |
+| xlm-roberta-base | 0.971 | 0.977 | 0.973 | -0.014 | 0.943 | 0.315 |
+| Llama-3.2-1B | 0.964 | 0.959 | 0.965 | -0.111 | 0.929 | 0.352 |
+| Qwen2.5-0.5B | 0.937 | 0.927 | 0.938 | -0.127 | 0.878 | 0.468 |
+| bloom-560m | 0.972 | 0.970 | 0.974 | -0.055 | 0.944 | 0.317 |
 
 Amplification factor A/S1 (=S8tok/S1) mean per year — if flat, S7 rescales S4:
 
@@ -22,11 +22,11 @@ Amplification factor A/S1 (=S8tok/S1) mean per year — if flat, S7 rescales S4:
 | --- | --- | --- | --- | --- | --- |
 | bert-base-multilingual-cased | 1.96 | 1.97 | 1.98 | 1.93 | 1.92 |
 | xlm-roberta-base | 1.82 | 1.82 | 1.83 | 1.78 | 1.76 |
-| Llama-3.2-1B | 1.91 | 1.93 | 1.93 | 1.85 | 1.83 |
-| Qwen2.5-0.5B | 2.05 | 2.05 | 2.02 | 1.93 | 1.92 |
+| Llama-3.2-1B | 1.91 | 1.93 | 1.92 | 1.85 | 1.83 |
+| Qwen2.5-0.5B | 2.05 | 2.05 | 2.01 | 1.93 | 1.91 |
 | bloom-560m | 1.88 | 1.89 | 1.91 | 1.84 | 1.82 |
 
-**Verdict: S7 is a distinct signal.** (median level corr 0.969, median differenced corr 0.970, median R² 0.939.)
+**Verdict: S7 is a distinct signal.** (median level corr 0.969, median differenced corr 0.970, median R² 0.940.)
 
 ## Part 2 — the sign anomaly
 
@@ -34,11 +34,11 @@ Pearson corr of six covariates with z(S1) over the detection epoch, per tokenize
 
 | tokenizer | mean_word_len | mean_doc_words | ttr | top1000_share | latin_share | mean_freq_rank |
 | --- | --- | --- | --- | --- | --- | --- |
-| bert-base-multilingual-cased | +0.24 | -0.04 | +0.24 | -0.58 | -0.08 | +0.59 |
+| bert-base-multilingual-cased | +0.23 | -0.04 | +0.24 | -0.58 | -0.08 | +0.59 |
 | xlm-roberta-base | +0.39 | -0.05 | +0.31 | -0.62 | -0.08 | +0.59 |
 | Llama-3.2-1B | +0.04 | -0.08 | +0.21 | -0.44 | -0.11 | +0.51 |
-| Qwen2.5-0.5B | +0.02 | -0.08 | +0.17 | -0.40 | -0.10 | +0.47 |
-| bloom-560m | +0.16 | -0.07 | +0.28 | -0.56 | -0.09 | +0.61 |
+| Qwen2.5-0.5B | +0.01 | -0.08 | +0.17 | -0.40 | -0.10 | +0.47 |
+| bloom-560m | +0.16 | -0.07 | +0.28 | -0.56 | -0.09 | +0.60 |
 
 Covariate most consistently associated with z(S1) across tokenizers: **mean_freq_rank**. (XLM-R and BLOOM — the best-Bangla-coverage tokenizers — are the ones whose S1 falls; the covariate above is the composition term in `S1−S1_ref ≈ novelty term + composition term`.)
 
@@ -51,14 +51,13 @@ For each signal, the **best tokenizer** (earliest valid detection, else most ala
 | signal | tokenizer | delta* | FAR achieved | alarmed? | delay from t* (days) | pre-t* alarms | near t*±60d |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | S1 | Llama-3.2-1B | 0.9 | 9.76e-04 | yes | 24 | 0 | yes |
-| S1c | bloom-560m | 0.95 | 9.44e-04 | yes | 24 | 0 | yes |
+| S1c | bloom-560m | 0.99 | 9.93e-04 | yes | 24 | 0 | yes |
 | S3 | bert-base-multilingual-cased | 0.99 | 8.62e-04 | yes | 24 | 0 | yes |
-| S4 | (shared) | 0.7 | 7.97e-04 | yes | 84 | 0 | no |
-| S7 | bert-base-multilingual-cased | 0.95 | 9.93e-04 | yes | 50 | 0 | yes |
+| S4 | (shared) | 0.7 | 8.46e-04 | yes | 84 | 0 | no |
+| S7 | bloom-560m | 0.95 | 9.60e-04 | yes | 50 | 0 | yes |
 
 ### Raw vs residualized (n_words regressed out on reference epoch)
 
-- S1c/xlm-roberta-base: raw(alarm=True,delay=33) vs resid(alarm=True,delay=93)
 - S4/shared: raw(alarm=True,delay=84) vs resid(alarm=True,delay=59)
 - S7/Llama-3.2-1B: raw(alarm=True,delay=50) vs resid(alarm=True,delay=24)
 - S7/bloom-560m: raw(alarm=True,delay=50) vs resid(alarm=True,delay=24)
@@ -86,10 +85,10 @@ THE REDUNDANCY ANSWER:
         bert-base-multilingual-cased: 0.969 / 0.970
         xlm-roberta-base: 0.971 / 0.973
         Llama-3.2-1B: 0.964 / 0.965
-        Qwen2.5-0.5B: 0.937 / 0.939
-        bloom-560m: 0.971 / 0.974
-    R^2 of S7 ~ S4: bert-base-multilingual-cased=0.939, xlm-roberta-base=0.943, Llama-3.2-1B=0.929, Qwen2.5-0.5B=0.878, bloom-560m=0.944
-    partial corr(S7,time|S4): bert-base-multilingual-cased=0.018, xlm-roberta-base=-0.015, Llama-3.2-1B=-0.111, Qwen2.5-0.5B=-0.127, bloom-560m=-0.055
+        Qwen2.5-0.5B: 0.937 / 0.938
+        bloom-560m: 0.972 / 0.974
+    R^2 of S7 ~ S4: bert-base-multilingual-cased=0.940, xlm-roberta-base=0.943, Llama-3.2-1B=0.929, Qwen2.5-0.5B=0.878, bloom-560m=0.944
+    partial corr(S7,time|S4): bert-base-multilingual-cased=0.020, xlm-roberta-base=-0.014, Llama-3.2-1B=-0.111, Qwen2.5-0.5B=-0.127, bloom-560m=-0.055
     VERDICT: S7 is a distinct signal
 
 THE SIGN ANOMALY:
@@ -99,10 +98,10 @@ THE SIGN ANOMALY:
 THE DETECTION RESULT — at target FAR 0.001, per signal (best tokenizer named):
     signal | tokenizer | delta* | FAR | alarmed | delay(days) | pre-t*
     S1   | Llama-3.2-1B | 0.9 | 9.8e-04 | True | 24 | 0
-    S1c  | bloom-560m | 0.95 | 9.4e-04 | True | 24 | 0
+    S1c  | bloom-560m | 0.99 | 9.9e-04 | True | 24 | 0
     S3   | bert-base-multilingual-cased | 0.99 | 8.6e-04 | True | 24 | 0
-    S4   | (shared) | 0.7 | 8.0e-04 | True | 84 | 0
-    S7   | bert-base-multilingual-cased | 0.95 | 9.9e-04 | True | 50 | 0
+    S4   | (shared) | 0.7 | 8.5e-04 | True | 84 | 0
+    S7   | bloom-560m | 0.95 | 9.6e-04 | True | 50 | 0
 
 FAR SENSITIVITY — best detection delay per signal at 1e-2 / 1e-3 / 1e-4:
     S1: 0.001:24, 0.01:24, 0.0001:84

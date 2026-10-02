@@ -1,6 +1,6 @@
 # TASK 6 — control arm, sign anomaly, supervised & MMD baselines, lead time
 
-- Mode: FULL. All detection uses delta* frozen in `results/calibration.json` / classifier & embeddings calibration — none re-tuned.
+- Mode: FULL · language `bn`. All detection uses delta* frozen in `results/calibration*.json` / classifier & embeddings calibration — none re-tuned.
 
 ## Part 1 — the p=0 control arm (false-positive floor)
 

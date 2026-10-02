@@ -1,6 +1,7 @@
 # TASK 5b — Detection done properly
 
 - Mode: FULL · extends T5. delta grid 1e-06..0.99 (14 points).
+- Language: `bn` · stream: `bn_panel`
 - **Anti-leakage:** every delta* is frozen from the shuffled null streams (perms 01-10) in `results/calibration.json`, computed *before* any real or synthetic stream is scored. Synthetic streams are never used for calibration (that would be circular). The real stream (perm00) and synthetic streams are only *read* here.
 
 ## Problem 1 — extended grid: does the FAR constraint bind?

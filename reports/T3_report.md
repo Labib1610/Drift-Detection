@@ -1,18 +1,21 @@
 # TASK 3 — Fertility signals (S1-S4) report
 
-- Mode: FULL · wall-clock 397.9s
+- Mode: FULL · wall-clock 477.8s
+- Language: `bn` · headline stream: `bn_panel`
 - Reproduce:
 ```
 python src/streams.py --params params.yaml
-python src/fertility.py --params params.yaml --report reports/T4_report.md
+python src/fertility.py --lang bn --params params.yaml --report reports/T4_report.md
 ```
 
 ## Permutation validity
 
 | stream | n | n_perms | checks |
 | --- | --- | --- | --- |
-| bn_panel | 99,900 | 11 | valid=True & bijections & no-dups=True |
 | bn_full | 95,935 | 11 | valid=True & bijections & no-dups=True |
+| bn_panel | 99,900 | 11 | valid=True & bijections & no-dups=True |
+| ns_full | 83,893 | 11 | valid=True & bijections & no-dups=True |
+| ns_panel | 46,513 | 11 | valid=True & bijections & no-dups=True |
 
 ## Tokenizers
 
@@ -34,11 +37,11 @@ Detected word-boundary / fallback markers, confirmed on the Bangla two-word prob
 | Qwen/Qwen2.5-0.5B | U+0120 'Ġ' (word-start prefix) | byte-fallback UNDEFINED (byte-level → null) | à¦¨ à¦¤ à§ ģ à¦¨ Ġà¦ ¶ à¦¬ à§įà¦ ¦ |
 | bigscience/bloom-560m | U+0120 'Ġ' (word-start prefix) | byte-fallback UNDEFINED (byte-level → null) | à¦¨à¦¤à§ģà¦¨ Ġà¦¶à¦¬à§įà¦¦ |
 
-## Raw mean fertility (whole panel)
+## Raw mean fertility (whole headline stream `bn_panel`)
 
 Descriptive tokens-per-word over all of `bn_panel` (spec §5.5). Amendment: Qwen ~8-10 is expected (byte-level BPE, negligible Bengali vocabulary).
 
-| tokenizer | raw mean fertility (panel) |
+| tokenizer | raw mean fertility (headline stream) |
 | --- | --- |
 | bert-base-multilingual-cased | 2.715 |
 | xlm-roberta-base | 2.040 |
@@ -182,27 +185,27 @@ If S1 rises but S1b does not, late-period drift is compositional (topic mix); if
 
 | stage | seconds |
 | --- | --- |
-| load bert-base-multilingual-cased | 2.5 |
-| load xlm-roberta-base | 3.4 |
-| load meta-llama_Llama-3.2-1B | 2.0 |
-| load Qwen_Qwen2.5-0.5B | 1.7 |
-| load bigscience_bloom-560m | 2.6 |
-| bn_panel: ICU types | 10.2 |
-| bn_panel: tokenize bert-base-multilingual-cased | 19.1 |
-| bn_panel: tokenize xlm-roberta-base | 18.0 |
-| bn_panel: tokenize meta-llama_Llama-3.2-1B | 36.6 |
-| bn_panel: tokenize Qwen_Qwen2.5-0.5B | 38.4 |
-| bn_panel: tokenize bigscience_bloom-560m | 18.3 |
-| bn_panel: type-fertility | 32.4 |
-| bn_panel: total | 224.8 |
-| bn_full: ICU types | 8.7 |
-| bn_full: tokenize bert-base-multilingual-cased | 18.8 |
-| bn_full: tokenize xlm-roberta-base | 18.3 |
-| bn_full: tokenize meta-llama_Llama-3.2-1B | 31.6 |
-| bn_full: tokenize Qwen_Qwen2.5-0.5B | 32.1 |
-| bn_full: tokenize bigscience_bloom-560m | 15.7 |
-| bn_full: type-fertility | 29.7 |
-| bn_full: total | 159.8 |
+| load bert-base-multilingual-cased | 2.9 |
+| load xlm-roberta-base | 4.0 |
+| load meta-llama_Llama-3.2-1B | 2.2 |
+| load Qwen_Qwen2.5-0.5B | 1.8 |
+| load bigscience_bloom-560m | 3.0 |
+| bn_panel: ICU types | 11.3 |
+| bn_panel: tokenize bert-base-multilingual-cased | 21.6 |
+| bn_panel: tokenize xlm-roberta-base | 22.2 |
+| bn_panel: tokenize meta-llama_Llama-3.2-1B | 44.3 |
+| bn_panel: tokenize Qwen_Qwen2.5-0.5B | 44.5 |
+| bn_panel: tokenize bigscience_bloom-560m | 22.2 |
+| bn_panel: type-fertility | 36.8 |
+| bn_panel: total | 273.8 |
+| bn_full: ICU types | 8.9 |
+| bn_full: tokenize bert-base-multilingual-cased | 22.2 |
+| bn_full: tokenize xlm-roberta-base | 22.4 |
+| bn_full: tokenize meta-llama_Llama-3.2-1B | 37.3 |
+| bn_full: tokenize Qwen_Qwen2.5-0.5B | 38.5 |
+| bn_full: tokenize bigscience_bloom-560m | 18.7 |
+| bn_full: type-fertility | 33.3 |
+| bn_full: total | 188.3 |
 
 ## STATUS
 
@@ -210,7 +213,7 @@ If S1 rises but S1b does not, late-period drift is compositional (topic mix); if
 GATE 1 — per-doc counts exist for all 5 tokenizers, no unexpected nulls:  PASS
 GATE 2 — 11 valid permutations, perm_00 = identity:                          PASS
 GATE 3 — window n_words p99 < 3000 (windows are tight):                      FAIL   (p99=3377)
-GATE 4 — raw mean fertility in [1.5, 12.0] for every tokenizer:              PASS   (amended range)
+GATE 4 — raw mean fertility in [1.5, 12.0] for every tokenizer:  PASS   (per-language range)
 GATE 5 — z-scored calibration epoch has mean ~0, sd ~1 for every stream:     PASS
 GATE 6 — S4 computed with a frozen calibration vocabulary, no leakage:       PASS
 

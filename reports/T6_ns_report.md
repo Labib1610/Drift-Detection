@@ -9,10 +9,10 @@
 | signal | power(0) | excess@0.05 | excess@0.1 | excess@0.25 | excess@0.5 | excess@1 |
 | --- | --- | --- | --- | --- | --- | --- |
 | S1 | 0.80 | +0.12 | +0.12 | +0.09 | +0.12 | +0.06 |
-| S1c | 0.82 | +0.02 | -0.03 | +0.04 | -0.04 | +0.03 |
-| S3 | 0.78 | +0.13 | +0.08 | +0.04 | +0.10 | +0.06 |
+| S1c | 0.83 | +0.00 | -0.03 | +0.04 | -0.04 | +0.02 |
+| S3 | 0.78 | +0.13 | +0.08 | +0.03 | +0.10 | +0.06 |
 | S4 | 1.00 | -0.05 | +0.00 | +0.00 | +0.00 | -0.10 |
-| S7 | 0.99 | -0.02 | +0.01 | +0.01 | +0.01 | -0.07 |
+| S7 | 0.99 | -0.01 | +0.01 | +0.01 | +0.01 | -0.05 |
 
 Excess power at p=0.25: S4=+0.00, S7=+0.01; at p=0.5: S4=+0.00, S7=+0.01. **S7 advantage survives the floor correction: NO.**
 > After subtracting the false-positive floor, S7 and S4 are not separable — the T5b conclusion (indistinguishable) is reinforced, not overturned.
@@ -24,7 +24,7 @@ Every word type is assigned a reference-epoch frequency decile (1=most frequent;
 | tokenizer | composition | within-bucket | interaction | sum | ΔS1(recon) | closes? |
 | --- | --- | --- | --- | --- | --- | --- |
 | bert-base-multilingual-cased | -0.048 | -0.026 | +0.074 | -0.000 | -0.000 | yes |
-| xlm-roberta-base | -0.048 | -0.023 | +0.070 | -0.001 | -0.001 | yes |
+| xlm-roberta-base | -0.047 | -0.023 | +0.069 | -0.001 | -0.001 | yes |
 | Llama-3.2-1B | -0.041 | -0.031 | +0.069 | -0.003 | -0.003 | yes |
 | Qwen2.5-0.5B | -0.043 | -0.033 | +0.076 | +0.000 | +0.000 | yes |
 | bloom-560m | -0.042 | -0.029 | +0.067 | -0.004 | -0.004 | yes |
@@ -66,13 +66,13 @@ GATE 4 — MMD bandwidth frozen from reference pool only:                       
 GATE 5 — all signals detected at FAR matched to the same target:                PASS
 
 THE ARBITRATION:
-    power(p=0) per signal: S1=0.80, S1c=0.82, S3=0.78, S4=1.00, S7=0.99
+    power(p=0) per signal: S1=0.80, S1c=0.83, S3=0.78, S4=1.00, S7=0.99
     excess power p=0.25 S4=+0.00 S7=+0.01; p=0.5 S4=+0.00 S7=+0.01
     does the S7 advantage survive the floor correction?  NO
 
 THE ANOMALY:
     bert-base-multilingual-cased: comp=-0.048 within=-0.026 inter=+0.074 (ΔS1=-0.000)
-    xlm-roberta-base: comp=-0.048 within=-0.023 inter=+0.070 (ΔS1=-0.001)
+    xlm-roberta-base: comp=-0.047 within=-0.023 inter=+0.069 (ΔS1=-0.001)
     Llama-3.2-1B: comp=-0.041 within=-0.031 inter=+0.069 (ΔS1=-0.003)
     Qwen2.5-0.5B: comp=-0.043 within=-0.033 inter=+0.076 (ΔS1=+0.000)
     bloom-560m: comp=-0.042 within=-0.029 inter=+0.067 (ΔS1=-0.004)

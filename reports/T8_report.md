@@ -1,6 +1,6 @@
 # TASK 8 — the sensitivity floor
 
-- Frozen delta* throughout; no re-calibration. Seeds: synthetic base 42, permutation 42, bootstrap 42.
+- Language `bn`. Frozen delta* throughout; no re-calibration. Seeds: synthetic base 42, permutation 42, bootstrap 42.
 
 ## Part 1 — inverting the response curve: where real events sit
 

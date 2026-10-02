@@ -20,7 +20,7 @@ Matched seed surface forms per event (auditable by a Bangla reader):
 
 - **lok_sabha_results** — seeds ['mandate', 'vvpat', 'evm', 'nda']: 26 matched types; e.g. evm, evms, evms.the, mandate, mandate.that, mandated, mandates, mandates.the, nda, nda's, nda.even, ndaa …
 - **article_370_abrogation** — seeds ['370', 'abrogation', 'abrogated', 'ladakh']: 20 matched types; e.g. 370, 370,000, 370,384, 370.15, 370.5, 370.8, 370.90, 3700, 3701.50, 370m, abrogated, abrogation …
-- **ayodhya_verdict** — seeds ['ayodhya', 'babri', 'janmabhoomi', 'masjid']: 15 matched types; e.g. ayodhya, ayodhya's, ayodhya.mr, ayodhya.prasad, ayodhya.scupltor, ayodhya42, ayodhya:it's, ayodhyaa, ayodhyaram, ayodhya’s, babri, janmabhoomi …
+- **ayodhya_verdict** — seeds ['ayodhya', 'babri', 'janmabhoomi', 'masjid']: 14 matched types; e.g. ayodhya, ayodhya's, ayodhya.mr, ayodhya.prasad, ayodhya.scupltor, ayodhya42, ayodhyaa, ayodhyaram, ayodhya’s, babri, janmabhoomi, masjid …
 - **covid_first_cases** — seeds ['coronavirus', 'covid', 'lockdown', 'quarantine', 'pandemic']: 80 matched types; e.g. coronavirus, coronavirus.in, coronavirus.the, coronavirusacross, coronaviruscovid, coronaviruses, coronaviruspandemic, coronavirus’s, covid, covid.a, covid.at, covid.india …
 
 **The excess column is the honest measure.** Raw event footprint (b) is inflated for events whose seed terms are common vocabulary present year-round — নির্বাচন/ভোট/সংসদ (election), সড়ক (road-safety), জিয়া (khaleda) all appear in ~10-30% of documents in any month, so their (b) exceeds turnover but their **excess over the pre-event baseline is small**. Only COVID (excess +0.064) shows a large event-driven jump; 0/7 events add <0.05 over baseline. **Newsworthy ≠ lexically large, and hand-picked event dates — measured either by turnover or by seed excess — are a poor ground truth for drift evaluation.** This is itself a finding.
@@ -44,7 +44,7 @@ Spearman rank correlations across the 7 events (few points — coefficient + exa
 | --- | --- | --- | --- | --- |
 | S1 | +0.50 | 0.667 | -1.00 | 0.000 |
 | S4 | +0.50 | 0.667 | -0.50 | 0.667 |
-| S7 | +0.50 | 0.667 | +0.00 | 1.000 |
+| S7 | +0.50 | 0.667 | -0.50 | 0.667 |
 
 Does detection delay fall as event footprint rises?  **NO (flat/positive)** (negative ρ for: none; significant: none).
 

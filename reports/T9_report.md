@@ -1,6 +1,6 @@
 # TASK 9 — event footprint, measured properly
 
-- Separates **news turnover** (what T8 mis-labelled as event footprint) from the **event footprint** (event-specific seed terms). Frozen delta*, no re-calibration. Seeds: base 42.
+- Language `bn`. Separates **news turnover** (what T8 mis-labelled as event footprint) from the **event footprint** (event-specific seed terms). Frozen delta*, no re-calibration. Seeds: base 42.
 
 ## Part 1 — two distinct quantities
 

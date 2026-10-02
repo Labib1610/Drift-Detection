@@ -11,10 +11,10 @@ Calibration curve R(p) (mean [95% CI]):
 | signal | p=0 | p=0.05 | p=0.1 | p=0.25 | p=0.5 | p=1 | detection threshold |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | S1 | 0.51 | 0.52 | 0.49 | 0.50 | 0.50 | 0.47 | None |
-| S1c | 0.19 | 0.25 | 0.21 | 0.21 | 0.21 | 0.18 | None |
+| S1c | 0.19 | 0.25 | 0.21 | 0.21 | 0.20 | 0.18 | None |
 | S3 | 0.55 | 0.54 | 0.53 | 0.53 | 0.55 | 0.51 | 1.0 |
-| S4 | 2.75 | 2.84 | 2.82 | 2.78 | 2.78 | 2.89 | None |
-| S7 | 2.60 | 2.71 | 2.71 | 2.69 | 2.69 | 2.72 | None |
+| S4 | 2.74 | 2.84 | 2.82 | 2.78 | 2.78 | 2.89 | None |
+| S7 | 2.60 | 2.70 | 2.71 | 2.69 | 2.68 | 2.72 | None |
 
 **p_eff per event — S4** (detection threshold = None):
 
@@ -30,9 +30,9 @@ Calibration curve R(p) (mean [95% CI]):
 | event | R_obs | p_eff [95% CI] | p_eff / threshold |
 | --- | --- | --- | --- |
 | lok_sabha_results | +nan | nan [nan,nan] | — |
-| article_370_abrogation | +0.00 | 0.050 [0.000,1.000] | — |
-| ayodhya_verdict | +0.00 | 0.050 [0.000,1.000] | — |
-| covid_first_cases | +2.03 | 0.050 [0.000,1.000] | — |
+| article_370_abrogation | +0.00 | 0.000 [0.000,1.000] | — |
+| ayodhya_verdict | +0.00 | 0.000 [0.000,1.000] | — |
+| covid_first_cases | +2.03 | 0.000 [0.000,1.000] | — |
 
 **p_eff per event — S1** (detection threshold = None):
 
@@ -94,11 +94,11 @@ Corroboration — direct footprint vs S7 p_eff:
 
 | event | footprint (doc frac) | S7 p_eff | ratio |
 | --- | --- | --- | --- |
-| article_370_abrogation | 0.32 | 0.050 | 6.3 |
-| ayodhya_verdict | 0.35 | 0.050 | 7.1 |
-| covid_first_cases | 0.11 | 0.050 | 2.1 |
+| article_370_abrogation | 0.32 | 0.000 | inf |
+| ayodhya_verdict | 0.35 | 0.000 | inf |
+| covid_first_cases | 0.11 | 0.000 | inf |
 
-Direct measurement corroborates p_eff (within ~3×) in **1/3** events → inversion is UNRELIABLE — report with caution.
+Direct measurement corroborates p_eff (within ~3×) in **0/3** events → inversion is UNRELIABLE — report with caution.
 
 ## STATUS
 
@@ -111,7 +111,7 @@ GATE 5 — event footprint measured directly and compared to p_eff:          PAS
 
 THE SENSITIVITY FLOOR:
     detection threshold (smallest p with excess-power CI>0): S1=None, S1c=None, S3=1.0, S4=None, S7=None
-    median p_eff across 7 events: S4=0.000, S7=0.050
+    median p_eff across 7 events: S4=0.000, S7=0.000
     ratio event p_eff / threshold: S4=nan, S7=nan
     direct footprint (doc fraction) median across events: 0.317
     does the direct measurement corroborate p_eff?  NO

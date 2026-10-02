@@ -1,6 +1,6 @@
 # TASK 7 — is anything actually detecting anything?
 
-- Uses only the frozen delta* in `results/calibration.json` (+ classifier/embeddings calibration). No re-tuning, no new signals. Permutation seed = 42.
+- Language `bn`. Uses only the frozen delta* in `results/calibration.json` (+ classifier/embeddings calibration). No re-tuning, no new signals. Permutation seed = 42.
 
 ## Part 1 — alarm census (real stream, detection epoch)
 

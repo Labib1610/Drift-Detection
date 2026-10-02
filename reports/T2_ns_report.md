@@ -1,6 +1,6 @@
 # TASK 2 — ns preparation report
 
-- Generated: 2026-09-25T16:02:17
+- Generated: 2026-10-02T20:24:53
 - Mode: FULL · loader `newssumm_csv`
 - Params: `params.yaml` · seed 42
 
@@ -170,8 +170,8 @@ Worst 10 cells by shortfall:
 
 | stream | docs | date span | total words | mean n_words | file MB |
 | --- | --- | --- | --- | --- | --- |
-| ns_panel | 46,513 | 2019-07-01..2024-09-30 | 15,663,829 | 336.8 | 36.2 |
-| ns_full | 83,893 | 2000-01-01..2025-12-31 | 28,769,948 | 342.9 | 69.2 |
+| ns_panel | 46,513 | 2019-07-01..2024-09-30 | 15,664,324 | 336.8 | 36.2 |
+| ns_full | 83,893 | 2000-01-01..2025-12-31 | 28,771,904 | 343.0 | 69.2 |
 
 `ns_full` sampling: uniform across time = equal per-month quota of **320** over 312 months (2000-01..2025-12).
 

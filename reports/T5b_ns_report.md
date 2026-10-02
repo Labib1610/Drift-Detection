@@ -17,18 +17,18 @@ Full FAR-vs-delta on nulls (raw), per signal at its first tokenizer:
 | 0.0001 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 |
 | 0.001 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 1.6e-05 | 0.0e+00 |
 | 0.01 | 0.0e+00 | 0.0e+00 | 0.0e+00 | 1.6e-05 | 0.0e+00 |
-| 0.05 | 0.0e+00 | 0.0e+00 | 1.6e-05 | 1.1e-04 | 3.3e-05 |
-| 0.1 | 3.3e-05 | 6.5e-05 | 3.3e-05 | 1.5e-04 | 9.8e-05 |
+| 0.05 | 0.0e+00 | 0.0e+00 | 1.6e-05 | 1.1e-04 | 4.9e-05 |
+| 0.1 | 4.9e-05 | 6.5e-05 | 3.3e-05 | 1.5e-04 | 9.8e-05 |
 | 0.2 | 2.0e-04 | 1.3e-04 | 9.8e-05 | 3.6e-04 | 2.1e-04 |
-| 0.3 | 3.4e-04 | 2.1e-04 | 1.8e-04 | 4.2e-04 | 2.8e-04 |
-| 0.5 | 5.7e-04 | 3.4e-04 | 3.3e-04 | 6.3e-04 | 5.2e-04 |
-| 0.7 | 7.0e-04 | 5.9e-04 | 4.6e-04 | 8.0e-04 | 7.0e-04 |
-| 0.9 | 1.1e-03 | 1.0e-03 | 7.5e-04 | 1.1e-03 | 9.4e-04 |
-| 0.95 | 1.2e-03 | 1.1e-03 | 7.6e-04 | 1.2e-03 | 9.9e-04 |
-| 0.99 | 1.2e-03 | 1.1e-03 | 8.6e-04 | 1.3e-03 | 1.1e-03 |
+| 0.3 | 3.4e-04 | 2.0e-04 | 1.8e-04 | 4.1e-04 | 2.9e-04 |
+| 0.5 | 6.0e-04 | 3.6e-04 | 3.3e-04 | 6.0e-04 | 4.7e-04 |
+| 0.7 | 7.0e-04 | 5.9e-04 | 4.6e-04 | 8.5e-04 | 7.0e-04 |
+| 0.9 | 1.1e-03 | 1.0e-03 | 7.5e-04 | 1.1e-03 | 8.6e-04 |
+| 0.95 | 1.2e-03 | 1.1e-03 | 7.6e-04 | 1.2e-03 | 9.8e-04 |
+| 0.99 | 1.2e-03 | 1.1e-03 | 8.6e-04 | 1.3e-03 | 1.0e-03 |
 
-Max FAR reached on the grid, per signal: S1=1.2e-03, S1c=1.1e-03, S3=8.6e-04, S4=1.3e-03, S7=1.1e-03.
-**Constraint DOES NOT BIND** at target 0.001. delta* pinned at grid max (0.99) for: S1 0/5, S1c 3/5, S3 1/5, S4 0/1, S7 0/5.
+Max FAR reached on the grid, per signal: S1=1.2e-03, S1c=1.1e-03, S3=8.6e-04, S4=1.3e-03, S7=1.0e-03.
+**Constraint DOES NOT BIND** at target 0.001. delta* pinned at grid max (0.99) for: S1 0/5, S1c 4/5, S3 1/5, S4 0/1, S7 0/5.
 > Where a signal's FAR stays below target even at delta=0.99, its delta* is recorded as **grid maximum, constraint inactive**, and its delays are measured at maximum sensitivity — not at a matched FAR. Stated explicitly so the comparison is not overclaimed.
 
 ## Problem 2 — full 5×5 delay grid on COVID (no 'best' selection)
@@ -64,20 +64,20 @@ Early pool = 2016-2017 (1,282 docs), late pool = 2020 (9,789 docs). Each synthet
 | signal | p=0.05 | p=0.1 | p=0.25 | p=0.5 | p=1 |
 | --- | --- | --- | --- | --- | --- |
 | S1 | 0.92 | 0.92 | 0.89 | 0.92 | 0.86 |
-| S1c | 0.84 | 0.79 | 0.86 | 0.78 | 0.85 |
-| S3 | 0.91 | 0.86 | 0.82 | 0.88 | 0.84 |
+| S1c | 0.83 | 0.80 | 0.87 | 0.79 | 0.85 |
+| S3 | 0.91 | 0.86 | 0.81 | 0.88 | 0.84 |
 | S4 | 0.95 | 1.00 | 1.00 | 1.00 | 0.90 |
-| S7 | 0.97 | 1.00 | 1.00 | 1.00 | 0.92 |
+| S7 | 0.98 | 1.00 | 1.00 | 1.00 | 0.94 |
 
 **Median detection delay in windows** [95% bootstrap CI], per signal × intensity (— = never detected):
 
 | signal | p=0.05 | p=0.1 | p=0.25 | p=0.5 | p=1 |
 | --- | --- | --- | --- | --- | --- |
-| S1 | 173 [106,301] | 175 [139,269] | 137 [75,234] | 138 [105,284] | 204 [108,380] |
-| S1c | 314 [220,396] | 268 [171,364] | 330 [171,493] | 284 [202,395] | 204 [140,332] |
-| S3 | 138 [106,205] | 175 [108,364] | 137 [75,235] | 154 [106,330] | 252 [140,490] |
-| S4 | 41 [12,45] | 44 [42,74] | 42 [26,45] | 42 [42,44] | 43 [42,45] |
-| S7 | 42 [13,42] | 44 [43,60] | 42 [41,43] | 42 [42,42] | 44 [43,44] |
+| S1 | 173 [106,301] | 175 [139,301] | 137 [75,235] | 220 [106,300] | 204 [108,380] |
+| S1c | 330 [234,396] | 269 [171,363] | 266 [171,462] | 332 [266,396] | 204 [140,332] |
+| S3 | 138 [106,205] | 175 [108,364] | 137 [74,235] | 154 [106,331] | 252 [140,490] |
+| S4 | 41 [12,45] | 44 [42,74] | 42 [12,45] | 42 [42,44] | 43 [42,45] |
+| S7 | 42 [13,42] | 44 [43,46] | 41 [12,43] | 42 [42,42] | 44 [43,44] |
 
 **Intensity p reaching ≥80% detection power**, per signal:
 
@@ -88,9 +88,9 @@ Early pool = 2016-2017 (1,282 docs), late pool = 2020 (9,789 docs). Each synthet
 **Ordering check (S7 vs S4 vs S1) with CI overlap:**
 
 - p=0.05: S1: 173[106,301]; S4: 41[12,45]; S7: 42[13,42] → S7 vs S4 CIs OVERLAP (indistinguishable).
-- p=0.1: S1: 175[139,269]; S4: 44[42,74]; S7: 44[43,60] → S7 vs S4 CIs OVERLAP (indistinguishable).
-- p=0.25: S1: 137[75,234]; S4: 42[26,45]; S7: 42[41,43] → S7 vs S4 CIs OVERLAP (indistinguishable).
-- p=0.5: S1: 138[105,284]; S4: 42[42,44]; S7: 42[42,42] → S7 vs S4 CIs OVERLAP (indistinguishable).
+- p=0.1: S1: 175[139,301]; S4: 44[42,74]; S7: 44[43,46] → S7 vs S4 CIs OVERLAP (indistinguishable).
+- p=0.25: S1: 137[75,235]; S4: 42[12,45]; S7: 41[12,43] → S7 vs S4 CIs OVERLAP (indistinguishable).
+- p=0.5: S1: 220[106,300]; S4: 42[42,44]; S7: 42[42,42] → S7 vs S4 CIs OVERLAP (indistinguishable).
 - p=1: S1: 204[108,380]; S4: 43[42,45]; S7: 44[43,44] → S7 vs S4 CIs OVERLAP (indistinguishable).
 
 ## Problem 3b — multiple real changepoints
@@ -121,24 +121,24 @@ Per-covariate: yearly mean, and a linear trend (slope per year) with p-value ove
 
 | covariate | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | slope/yr | p |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| mean_word_len | 4.857 | 4.885 | 4.890 | 4.891 | 4.933 | 4.951 | +0.0177 | 1.1e-44 |
-| mean_doc_words | 425.407 | 382.089 | 400.115 | 338.934 | 374.183 | 420.481 | +3.7346 | 2.2e-02 |
-| ttr | 0.393 | 0.394 | 0.392 | 0.404 | 0.402 | 0.407 | +0.0034 | 2.5e-31 |
-| top1000_share | 0.682 | 0.681 | 0.674 | 0.666 | 0.654 | 0.639 | -0.0101 | 2.6e-273 |
-| latin_share | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | +0.0000 | 5.6e-01 |
-| mean_freq_rank | 2346.619 | 3109.914 | 3435.516 | 3646.962 | 3808.076 | 4042.659 | +246.3056 | 1.5e-276 |
+| mean_word_len | 4.857 | 4.885 | 4.890 | 4.891 | 4.932 | 4.950 | +0.0177 | 1.1e-44 |
+| mean_doc_words | 425.412 | 382.113 | 400.118 | 338.898 | 374.193 | 420.494 | +3.7339 | 2.2e-02 |
+| ttr | 0.393 | 0.394 | 0.392 | 0.404 | 0.402 | 0.407 | +0.0034 | 2.7e-31 |
+| top1000_share | 0.682 | 0.681 | 0.674 | 0.666 | 0.654 | 0.639 | -0.0101 | 2.1e-273 |
+| latin_share | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | +0.0000 | 5.5e-01 |
+| mean_freq_rank | 2357.364 | 3107.335 | 3436.810 | 3646.312 | 3805.829 | 4039.944 | +245.4855 | 2.5e-274 |
 
 Share of observed Δz(S1) (reference→final-10%) attributable to the covariates (OLS of z(S1) on the six covariates, fit on the reference epoch, applied forward):
 
 | tokenizer | R²(ref fit) | covariate-predicted Δz(S1) | observed Δz(S1) | ratio |
 | --- | --- | --- | --- | --- |
-| bert-base-multilingual-cased | 0.30 | +0.906 | +1.085 | +0.83 |
-| xlm-roberta-base | 0.42 | +0.976 | +1.094 | +0.89 |
-| Llama-3.2-1B | 0.31 | +0.829 | +0.757 | +1.09 |
-| Qwen2.5-0.5B | 0.24 | +0.765 | +0.781 | +0.98 |
-| bloom-560m | 0.38 | +0.935 | +0.786 | +1.19 |
+| bert-base-multilingual-cased | 0.30 | +0.904 | +1.083 | +0.83 |
+| xlm-roberta-base | 0.41 | +0.974 | +1.092 | +0.89 |
+| Llama-3.2-1B | 0.31 | +0.827 | +0.756 | +1.09 |
+| Qwen2.5-0.5B | 0.23 | +0.763 | +0.780 | +0.98 |
+| bloom-560m | 0.37 | +0.933 | +0.785 | +1.19 |
 
-`latin_share` trend: slope +0.0000/yr (p=5.6e-01) — rising over time. The T5 correlation of ~−0.87 for Llama/Qwen means Latin-script share moves opposite to their z(S1); whether it *explains drift* depends on whether it trends (above), not just correlates.
+`latin_share` trend: slope +0.0000/yr (p=5.5e-01) — rising over time. The T5 correlation of ~−0.87 for Llama/Qwen means Latin-script share moves opposite to their z(S1); whether it *explains drift* depends on whether it trends (above), not just correlates.
 
 Covariates with a material time trend (p<0.05): **mean_word_len, mean_doc_words, ttr, top1000_share, mean_freq_rank**.
 
